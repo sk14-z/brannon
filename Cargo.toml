@@ -1,0 +1,8 @@
+[package]
+name = "brannon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+time = { version = "0.3.36", features = ["formatting", "local-offset"] }
+libc = "0.2.159"
