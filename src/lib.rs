@@ -1,14 +1,36 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+#[macro_export]
+macro_rules! printf {
+    ($($fmt:tt)*) => {{
+        use std::io::{stdout, Write};
+        print!($($fmt)*);
+        stdout().flush().unwrap();
+    }};
 }
+
+#[macro_export]
+macro_rules! printlnf {
+    ($($fmt:tt)*) => {{
+        use std::io::{stdout, Write};
+        println!($($fmt)*);
+        stdout().flush().unwrap();
+    }};
+}
+
+pub mod app;
+pub mod draw;
+pub mod key;
+pub mod log;
+pub mod style;
+pub mod theme;
+pub mod unit;
+pub mod widget;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn test() {
+        printf!("Hello world!");
     }
 }
