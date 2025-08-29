@@ -1,15 +1,18 @@
 mod terminal;
 
-use std::any::Any;
-
 use crate::{
     draw::cursor,
     key::Key,
+    panel::frame::Frame,
+    panel::Panel,
     style::{
         self,
         color::{Color, ColorBG},
     },
+    unit::Point,
+    widget::Widget,
 };
+use std::{any::Any, time::Instant};
 use terminal::{termsz, Terminal};
 
 pub trait VarBufKey {
@@ -19,39 +22,41 @@ pub trait VarBufKey {
 }
 
 pub struct App {
+    pub frame: Frame,
+    alert_status: bool,
     term: Terminal,
     theme: crate::theme::Theme,
     // Properties
-    pub no_clear: bool, // still clears on start
     pub show_cursor: bool,
     pub refresh_rate: usize,
     // Events
     pub init: fn(&mut Self),
-    pub run: fn(&mut Self, Option<Key>) -> usize,
+    pub run: fn(&mut Self, Option<Key>) -> Option<usize>,
     pub end: fn(&mut Self),
     // App Variables (temporary solution for lack of globals in rust)
     var_buf: Vec<Box<dyn Any>>,
     var_key: Vec<String>,
 }
 
+pub(crate) fn get_tsz() -> (usize, usize) {
+    termsz()
+}
+
 impl App {
     pub fn new() -> App {
         Self {
+            frame: Frame::new(),
+            alert_status: false,
             term: Terminal::initialize(),
             theme: crate::theme::Theme::new(),
-            no_clear: false,
             show_cursor: false,
             refresh_rate: 60,
             init: |_| {},
-            run: |_, _| 0,
+            run: |_, _| Some(0),
             end: |_| {},
             var_buf: Vec::new(),
             var_key: Vec::new(),
         }
-    }
-
-    pub(crate) fn get_tsz() -> (usize, usize) {
-        termsz()
     }
 
     pub fn fg(&self) -> &Color {
@@ -138,31 +143,41 @@ impl App {
         (self.init)(self);
 
         loop {
-            if !self.no_clear {
-                terminal::clear();
-                cursor::home();
-            }
+            let time = Instant::now();
 
             if dim != termsz() {
                 dim = termsz();
                 // resize everything
             }
 
+            terminal::clear();
+            cursor::home();
+
             if let Some(c) = terminal::getch() {
                 if let Some(key) = Key::new(c) {
-                    if (self.run)(self, Some(key)) != 0 {
+                    if let Some(n) = (self.run)(self, Some(key)) {
+                        if n != 0 {
+                            break;
+                        }
+                    } else {
                         break;
                     }
                 }
-            } else if (self.run)(self, None) != 0 {
+            } else if let Some(n) = (self.run)(self, None) {
+                if n != 0 {
+                    break;
+                }
+            } else {
                 break;
             }
+            self.frame.render();
 
             style::reset();
 
-            std::thread::sleep(std::time::Duration::from_millis(
-                1000 / self.refresh_rate as u64,
-            ));
+            let target_time = std::time::Duration::from_millis(1000 / self.refresh_rate as u64);
+            if time.elapsed() < target_time {
+                std::thread::sleep(target_time - time.elapsed());
+            }
         }
 
         (self.end)(self);
@@ -184,7 +199,7 @@ impl App {
 
     pub fn get_var<T: 'static>(&mut self, name: &'static str) -> Option<&T> {
         match self.var_key.binary_search(&String::from(name)) {
-            Ok(index) => self.var_buf.get_mut(index).unwrap().downcast_ref::<T>(),
+            Ok(index) => self.var_buf.get(index).unwrap().downcast_ref::<T>(),
             Err(_) => None,
         }
     }
@@ -194,5 +209,9 @@ impl App {
             Ok(index) => self.var_buf.get_mut(index).unwrap().downcast_mut::<T>(),
             Err(_) => None,
         }
+    }
+
+    pub fn get_widget(&mut self, tag: &str) -> Option<&mut Box<dyn Widget>> {
+        self.frame.get_widget(tag)
     }
 }

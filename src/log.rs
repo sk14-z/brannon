@@ -53,3 +53,9 @@ impl Logger {
         self.log(LogFlag::None, msg);
     }
 }
+
+impl Drop for Logger {
+    fn drop(&mut self) {
+        _ = writeln!(self.stream, "\nEND OF LOG\n");
+    }
+}

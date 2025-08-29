@@ -7,30 +7,9 @@ use crate::{
     unit::{Point, Unit},
 };
 use box_char::BoxChar;
-use direction::Direction;
 
 pub fn clear() {
     printf!("\x1b[2J");
-}
-
-// I might have created these for no reason
-
-pub fn draw(c: char, color: Color, direction: Direction, length: usize) {
-    set_style(color);
-
-    match direction {
-        Direction::Up => printf!("{}", format!("{}\x1b[1A\x1b[1D", c).repeat(length)),
-        Direction::Down => printf!("{}", format!("{}\x1b[1B\x1b[1D", c).repeat(length)),
-        Direction::Right => printf!("{}", format!("{}", c).repeat(length)),
-        Direction::Left => printf!("{}", format!("{}\x1b[2D", c).repeat(length)),
-    }
-
-    style::reset();
-}
-
-pub fn draw_at(p: Point, c: char, color: Color, direction: Direction, length: usize) {
-    cursor::go(p);
-    draw(c, color, direction, length);
 }
 
 pub fn draw_box(anchor: Point, line: Line, color: Color, w: usize, h: usize) {
@@ -95,18 +74,49 @@ pub fn draw_arc_box(anchor: Point, color: Color, w: usize, h: usize) {
     style::reset();
 }
 
-pub fn draw_title(anchor: Point, width: usize, title: &String, color: Color, align: AlignX) {
+pub fn draw_title(anchor: Point, width: usize, title: String, color: Color, align: AlignX) {
     let x_offset = match align {
         AlignX::Left => 1,
-        AlignX::Center => (width / 2) - (title.len() / 2),
-        AlignX::Right => width - (title.len() + 1),
+        AlignX::Center => (width / 2) - ((title.len() + 4) / 2),
+        AlignX::Right => width - (title.len() + 5),
     };
 
     set_style(Text::Bold);
     set_style(color);
 
     cursor::go(Point::from(anchor, Unit::Cor(x_offset), Unit::Cor(0)));
-    printf!("{}", title);
+    printf!("┤ {} ├", title);
+
+    style::reset();
+}
+
+pub fn draw_title_double(anchor: Point, width: usize, title: String, color: Color, align: AlignX) {
+    let x_offset = match align {
+        AlignX::Left => 1,
+        AlignX::Center => (width / 2) - ((title.len() + 4) / 2),
+        AlignX::Right => width - (title.len() + 5),
+    };
+
+    set_style(Text::Bold);
+    set_style(color);
+
+    cursor::go(Point::from(anchor, Unit::Cor(x_offset), Unit::Cor(0)));
+    printf!("╣ {} ╠", title);
+
+    style::reset();
+}
+pub fn draw_binds(anchor: Point, width: usize, binds: String, color: Color, align: AlignX) {
+    let x_offset = match align {
+        AlignX::Left => 1,
+        AlignX::Center => (width / 2) - (binds.len() / 2),
+        AlignX::Right => width - (binds.len() + 1),
+    };
+
+    set_style(Text::Bold);
+    set_style(color);
+
+    cursor::go(Point::from(anchor, Unit::Cor(x_offset), Unit::Cor(0)));
+    printf!("{}", binds);
 
     style::reset();
 }

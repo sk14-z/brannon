@@ -1,4 +1,4 @@
-use crate::app::App;
+use crate::app::get_tsz;
 
 #[derive(Copy, Clone)]
 pub struct Point {
@@ -36,11 +36,11 @@ impl Point {
 
 #[derive(Copy, Clone)]
 pub enum Unit {
-    Cor(usize),           // Columns OR Rows (start at 1)
-    PctH(usize),          // Horizontal Percent
-    PctV(usize),          // Vertical Percent
-    PctHPO(usize, usize), // Horizontal Percent + Offset
-    PctVPO(usize, usize), // Vertical Percent + Offset
+    Cor(usize),         // Columns OR Rows (start at 1)
+    PctH(usize),        // Horizontal Percent
+    PctV(usize),        // Vertical Percent
+    PctHPO(usize, i16), // Horizontal Percent + Offset
+    PctVPO(usize, i16), // Vertical Percent + Offsett
 }
 
 impl Unit {
@@ -49,25 +49,29 @@ impl Unit {
             Unit::Cor(n) => *n,
             Unit::PctH(n) => {
                 if *n == 100 {
-                    App::get_tsz().0 - 1
+                    get_tsz().0 - 1
                 } else {
-                    (((*n as f32) / 100.0) * (crate::app::App::get_tsz().0 as f32)) as usize
+                    (((*n as f32) / 100.0) * (crate::app::get_tsz().0 as f32)) as usize
                 }
             }
-            Unit::PctV(n) => {
-                (((*n as f32) / 100.0) * (crate::app::App::get_tsz().1 as f32)) as usize
-            }
+            Unit::PctV(n) => (((*n as f32) / 100.0) * (crate::app::get_tsz().1 as f32)) as usize,
             Unit::PctHPO(n, o) => {
-                ((((*n as f32) / 100.0) * (crate::app::App::get_tsz().0 as f32)) as usize) + o
+                (((((*n as f32) / 100.0) * (crate::app::get_tsz().0 as f32)) as i16) + o) as usize
             }
             Unit::PctVPO(n, o) => {
-                ((((*n as f32) / 100.0) * (crate::app::App::get_tsz().1 as f32)) as usize) + o
+                (((((*n as f32) / 100.0) * (crate::app::get_tsz().1 as f32)) as i16) + o) as usize
             }
         }
     }
 }
 
-// Adding incompatiable percents automatically converts the rhs
+impl From<usize> for Unit {
+    fn from(value: usize) -> Self {
+        Unit::Cor(value)
+    }
+}
+
+// Adding unlike types is not reccomended. Orientation of lhs takes precedence: H + V = H
 impl std::ops::Add for Unit {
     type Output = Unit;
 
@@ -75,28 +79,28 @@ impl std::ops::Add for Unit {
         match self {
             Unit::Cor(n) => match rhs {
                 Unit::Cor(n2) => Unit::Cor(n + n2),
-                Unit::PctH(n2) => Unit::PctHPO(n2, n),
-                Unit::PctV(n2) => Unit::PctVPO(n2, n),
-                Unit::PctHPO(n2, o2) => Unit::PctHPO(n2, n + o2),
-                Unit::PctVPO(n2, o2) => Unit::PctVPO(n2, n + o2),
+                Unit::PctH(n2) => Unit::PctHPO(n2, n as i16),
+                Unit::PctV(n2) => Unit::PctVPO(n2, n as i16),
+                Unit::PctHPO(n2, o2) => Unit::PctHPO(n2, n as i16 + o2),
+                Unit::PctVPO(n2, o2) => Unit::PctVPO(n2, n as i16 + o2),
             },
             Unit::PctH(n) => match rhs {
-                Unit::Cor(n2) => Unit::PctHPO(n, n2),
+                Unit::Cor(n2) => Unit::PctHPO(n, n2 as i16),
                 Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctH(n + n2),
                 Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctHPO(n + n2, o2),
             },
             Unit::PctV(n) => match rhs {
-                Unit::Cor(n2) => Unit::PctHPO(n, n2),
+                Unit::Cor(n2) => Unit::PctVPO(n, n2 as i16),
                 Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctV(n + n2),
                 Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctVPO(n + n2, o2),
             },
             Unit::PctHPO(n, o) => match rhs {
-                Unit::Cor(n2) => Unit::PctHPO(n, o + n2),
+                Unit::Cor(n2) => Unit::PctHPO(n, o + n2 as i16),
                 Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctHPO(n + n2, o),
                 Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctHPO(n + n2, o + o2),
             },
             Unit::PctVPO(n, o) => match rhs {
-                Unit::Cor(n2) => Unit::PctVPO(n, o + n2),
+                Unit::Cor(n2) => Unit::PctVPO(n, o + n2 as i16),
                 Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctVPO(n + n2, o),
                 Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctVPO(n + n2, o + o2),
             },
@@ -107,5 +111,47 @@ impl std::ops::Add for Unit {
 impl std::ops::AddAssign for Unit {
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
+    }
+}
+
+impl std::ops::Sub for Unit {
+    type Output = Unit;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match self {
+            Unit::Cor(n) => match rhs {
+                Unit::Cor(n2) => Unit::Cor(n - n2),
+                Unit::PctH(n2) => Unit::PctHPO(n2, -(n as i16)),
+                Unit::PctV(n2) => Unit::PctVPO(n2, -(n as i16)),
+                Unit::PctHPO(n2, o2) => Unit::PctHPO(n2, n as i16 - o2),
+                Unit::PctVPO(n2, o2) => Unit::PctVPO(n2, n as i16 - o2),
+            },
+            Unit::PctH(n) => match rhs {
+                Unit::Cor(n2) => Unit::PctHPO(n, -(n2 as i16)),
+                Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctH(n - n2),
+                Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctHPO(n - n2, o2),
+            },
+            Unit::PctV(n) => match rhs {
+                Unit::Cor(n2) => Unit::PctVPO(n, -(n2 as i16)),
+                Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctV(n - n2),
+                Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctVPO(n - n2, o2),
+            },
+            Unit::PctHPO(n, o) => match rhs {
+                Unit::Cor(n2) => Unit::PctHPO(n, o - n2 as i16),
+                Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctHPO(n - n2, o),
+                Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctHPO(n - n2, o - o2),
+            },
+            Unit::PctVPO(n, o) => match rhs {
+                Unit::Cor(n2) => Unit::PctVPO(n, o - n2 as i16),
+                Unit::PctH(n2) | Unit::PctV(n2) => Unit::PctVPO(n - n2, o),
+                Unit::PctHPO(n2, o2) | Unit::PctVPO(n2, o2) => Unit::PctVPO(n - n2, o - o2),
+            },
+        }
+    }
+}
+
+impl std::ops::SubAssign for Unit {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }

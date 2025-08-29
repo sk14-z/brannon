@@ -20,17 +20,13 @@ pub mod app;
 pub mod draw;
 pub mod key;
 pub mod log;
+pub mod panel;
 pub mod style;
 pub mod theme;
 pub mod unit;
 pub mod widget;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test() {
-        printf!("Hello world!");
-    }
+#[test]
+fn test() {
+    printf!("Hello world!");
 }
