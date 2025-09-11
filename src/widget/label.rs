@@ -70,14 +70,11 @@ impl Widget for Label {
 }
 
 impl Label {
-    pub fn new(text: String, attr: Option<Attr>) -> Label {
-        match attr {
-            Some(attr) => Label { attr, text },
-            None => Label {
-                attr: Attr::new(),
-                text,
-            },
-        }
+    pub fn new(text: String, attr: Option<Attr>) -> Box<Label> {
+        Box::new(Label {
+            attr: attr.unwrap_or_default(),
+            text,
+        })
     }
 
     pub fn text(&mut self, value: String) {

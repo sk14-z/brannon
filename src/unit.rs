@@ -7,12 +7,15 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn new(x: Unit, y: Unit) -> Point {
-        Point { x, y }
+    pub fn new<T: Into<Unit>>(x: T, y: T) -> Point {
+        Point {
+            x: x.into(),
+            y: y.into(),
+        }
     }
 
-    pub fn from(p: Point, x_offset: Unit, y_offset: Unit) -> Point {
-        Point::new(p.x + x_offset, p.y + y_offset)
+    pub fn from<T: Into<Unit>>(p: Point, x_offset: T, y_offset: T) -> Point {
+        Point::new(p.x + x_offset.into(), p.y + y_offset.into())
     }
 
     pub fn cor(x: usize, y: usize) -> Point {

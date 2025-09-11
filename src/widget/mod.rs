@@ -4,18 +4,23 @@ pub mod container;
 pub mod label;
 pub mod progress_bar;
 
+use std::ops::{Deref, DerefMut};
+
 use crate::{
     draw::{draw_arc_box, draw_binds, draw_box, draw_title},
+    panel::frame,
     style::line::Line,
     unit::{Point, Unit},
 };
 
+use attr::Attr;
+
 pub trait Widget {
-    fn style(&self) -> &attr::Attr;
+    fn style(&self) -> &Attr;
 
-    fn style_mut(&mut self) -> &mut attr::Attr;
+    fn style_mut(&mut self) -> &mut Attr;
 
-    fn set_style(&mut self, attr: attr::Attr) {
+    fn set_style(&mut self, attr: Attr) {
         (*self.style_mut()) = attr;
     }
 
@@ -98,7 +103,7 @@ pub trait Widget {
         None
     }
 
-    fn as_frame(&mut self) -> Option<&mut crate::panel::frame::Frame> {
+    fn as_frame(&mut self) -> Option<&mut frame::Frame> {
         None
     }
 }

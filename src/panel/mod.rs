@@ -10,11 +10,64 @@ pub trait Panel {
     fn split(&self) -> (&Attr, &Vec<Box<dyn Widget>>);
     fn split_mut(&mut self) -> (&mut Attr, &mut Vec<Box<dyn Widget>>);
 
-    fn add(&mut self, widget: impl Widget + 'static) {
+    fn style_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
         let (_, children) = self.split_mut();
 
-        children.push(Box::new(widget));
+        for child in children.iter_mut() {
+            map(child);
+
+            if let Some(container) = child.as_container() {
+                container.style_all(map);
+            }
+        }
+    }
+
+    fn add(&mut self, widget: Box<dyn Widget>) {
+        let (_, children) = self.split_mut();
+
+        children.push(widget);
         self.flex();
+    }
+
+    fn addm(&mut self, widgets: Vec<Box<dyn Widget>>) {
+        let (_, children) = self.split_mut();
+
+        for widget in widgets {
+            children.push(widget);
+        }
+        self.flex();
+    }
+
+    fn remove(&mut self, tag: &str) -> Option<Box<dyn Widget>> {
+        let (_, children) = self.split_mut();
+
+        let mut removed = None;
+
+        if let Some(i) = children.iter().position(|w| w.style().tag == tag) {
+            removed = Some(children.remove(i));
+        }
+
+        self.shrink();
+
+        removed
+    }
+
+    fn removem(&mut self, tags: Vec<&str>) -> Vec<Option<Box<dyn Widget>>> {
+        let (_, children) = self.split_mut();
+
+        let mut removed = Vec::new();
+
+        for tag in tags {
+            if let Some(i) = children.iter().position(|w| w.style().tag == tag) {
+                removed.push(Some(children.remove(i)))
+            } else {
+                removed.push(None)
+            }
+        }
+
+        self.shrink();
+
+        removed
     }
 
     fn get_widget(&mut self, tag: &str) -> Option<&mut Box<dyn Widget>> {
@@ -101,10 +154,11 @@ pub trait Panel {
         }
     }
 
-    // If too small, adjust to fit children()
+    // If too small, adjust to fit children
     fn flex(&mut self) {
         let (inner_x, inner_y) = self.bounds();
         let (attr, _) = self.split_mut();
+
         if inner_x.calc() >= attr.width.calc() {
             attr.width = inner_x + Unit::Cor(2);
         }
@@ -114,9 +168,11 @@ pub trait Panel {
         }
     }
 
+    // If too big, adjust to fit children
     fn shrink(&mut self) {
         let (inner_x, inner_y) = self.bounds();
         let (attr, _) = self.split_mut();
+
         if inner_x.calc() <= attr.width.calc() {
             attr.width = inner_x + Unit::Cor(2);
         }

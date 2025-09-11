@@ -90,14 +90,10 @@ impl Widget for Container {
 }
 
 impl Container {
-    pub fn new(attr: Option<Attr>) -> Container {
-        Container {
-            attr: if let Some(attr) = attr {
-                attr
-            } else {
-                Attr::new()
-            },
+    pub fn new(attr: Option<Attr>) -> Box<Container> {
+        Box::new(Container {
+            attr: attr.unwrap_or_default(),
             children: vec![],
-        }
+        })
     }
 }

@@ -1,6 +1,9 @@
-use crate::key::Key;
-use crate::style::{align::*, color::Color, orientation::Orientation, text::Text};
-use crate::unit::*;
+use crate::{
+    key::Key,
+    style::{align::*, color::Color, orientation::Orientation, text::Text},
+    unit::*,
+    widget::Widget,
+};
 
 #[derive(Clone)]
 pub struct Attr {
@@ -38,6 +41,12 @@ pub struct Attr {
     pub(crate) binds_align: AlignX,
 }
 
+impl Default for Attr {
+    fn default() -> Self {
+        Attr::new()
+    }
+}
+
 impl Attr {
     pub fn new() -> Attr {
         Attr {
@@ -46,8 +55,8 @@ impl Attr {
             hide: false,
             expand: false,
             orientation: Orientation::Vertical,
-            width: Unit::Cor(10),
-            height: Unit::Cor(10),
+            width: Unit::Cor(0),
+            height: Unit::Cor(0),
             padding_top: Unit::Cor(0),
             padding_right: Unit::Cor(0),
             padding_bottom: Unit::Cor(0),
@@ -87,8 +96,14 @@ impl Attr {
         self
     }
 
-    pub fn width(&mut self, value: Unit) -> &mut Attr {
-        self.width = value;
+    pub fn size<T: Into<Unit>>(&mut self, xvalue: T, yvalue: T) -> &mut Attr {
+        self.width = xvalue.into();
+        self.height = yvalue.into();
+        self
+    }
+
+    pub fn width(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.width = value.into();
         self
     }
 
@@ -96,18 +111,18 @@ impl Attr {
         self.padding_left + self.width + self.padding_right
     }
 
-    pub fn inc_width(&mut self, value: Unit) -> &mut Attr {
-        self.width += value;
+    pub fn inc_width(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.width += value.into();
         self
     }
 
-    pub fn dec_width(&mut self, value: Unit) -> &mut Attr {
-        self.width -= value;
+    pub fn dec_width(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.width -= value.into();
         self
     }
 
-    pub fn height(&mut self, value: Unit) -> &mut Attr {
-        self.height = value;
+    pub fn height(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.height = value.into();
         self
     }
 
@@ -115,17 +130,18 @@ impl Attr {
         self.padding_top + self.height + self.padding_bottom
     }
 
-    pub fn inc_height(&mut self, value: Unit) -> &mut Attr {
-        self.height += value;
+    pub fn inc_height(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.height += value.into();
         self
     }
 
-    pub fn dec_height(&mut self, value: Unit) -> &mut Attr {
-        self.height -= value;
+    pub fn dec_height(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.height -= value.into();
         self
     }
 
-    pub fn padding(&mut self, value: Unit) -> &mut Attr {
+    pub fn padding(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        let value = value.into();
         self.padding_top = value;
         self.padding_right = value;
         self.padding_bottom = value;
@@ -133,35 +149,71 @@ impl Attr {
         self
     }
 
-    pub fn paddingx(&mut self, value: Unit) -> &mut Attr {
+    pub fn paddingm<T: Into<Unit> + Copy>(&mut self, value: &[T]) -> &mut Attr {
+        match value.len() {
+            1 => {
+                let p = value[0].into();
+                self.padding_top = p;
+                self.padding_right = p;
+                self.padding_bottom = p;
+                self.padding_left = p;
+            }
+            2 => {
+                let pttb = value[0].into();
+                let pltr = value[1].into();
+                self.padding_top = pttb;
+                self.padding_right = pltr;
+                self.padding_bottom = pttb;
+                self.padding_left = pltr;
+            }
+            4 => {
+                self.padding_top = value[0].into();
+                self.padding_right = value[1].into();
+                self.padding_bottom = value[2].into();
+                self.padding_left = value[3].into();
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn paddingx(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        let value = value.into();
         self.padding_right = value;
         self.padding_left = value;
         self
     }
 
-    pub fn paddingy(&mut self, value: Unit) -> &mut Attr {
+    pub fn paddingy(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        let value = value.into();
         self.padding_top = value;
         self.padding_bottom = value;
         self
     }
 
-    pub fn padding_top(&mut self, value: Unit) -> &mut Attr {
-        self.padding_top = value;
+    pub fn padding_top(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.padding_top = value.into();
         self
     }
 
-    pub fn padding_right(&mut self, value: Unit) -> &mut Attr {
-        self.padding_right = value;
+    pub fn padding_right(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.padding_right = value.into();
         self
     }
 
-    pub fn padding_bottom(&mut self, value: Unit) -> &mut Attr {
-        self.padding_bottom = value;
+    pub fn padding_bottom(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.padding_bottom = value.into();
         self
     }
 
-    pub fn padding_left(&mut self, value: Unit) -> &mut Attr {
-        self.padding_left = value;
+    pub fn padding_left(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        self.padding_left = value.into();
+        self
+    }
+
+    pub fn align(&mut self, xvalue: AlignX, yvalue: AlignY) -> &mut Attr {
+        self.alignx = xvalue;
+        self.aligny = yvalue;
         self
     }
 

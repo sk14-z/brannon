@@ -84,7 +84,7 @@ pub fn draw_title(anchor: Point, width: usize, title: String, color: Color, alig
     set_style(Text::Bold);
     set_style(color);
 
-    cursor::go(Point::from(anchor, Unit::Cor(x_offset), Unit::Cor(0)));
+    cursor::go(Point::from(anchor, x_offset, 0));
     printf!("┤ {} ├", title);
 
     style::reset();

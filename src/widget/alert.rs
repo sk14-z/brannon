@@ -43,10 +43,6 @@ impl Alert {
         &(self.attr)
     }
 
-    fn style_mut(&mut self) -> &mut Attr {
-        &mut (self.attr)
-    }
-
     pub fn render(&self, anchor: Point) {
         set_style(self.attr.text_color);
         set_style(self.attr.text_style);
