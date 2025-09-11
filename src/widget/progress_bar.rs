@@ -54,19 +54,12 @@ impl Widget for ProgressBar {
 }
 
 impl ProgressBar {
-    pub fn new(bar_color: ColorBG, attr: Option<Attr>) -> ProgressBar {
-        match attr {
-            Some(mut attr) => ProgressBar {
-                attr: attr.height(Unit::Cor(3)).to_owned(),
-                bar_color,
-                progress: 0,
-            },
-            None => ProgressBar {
-                attr: Attr::new().height(Unit::Cor(3)).to_owned(),
-                bar_color,
-                progress: 0,
-            },
-        }
+    pub fn new(bar_color: ColorBG, attr: Option<Attr>) -> Box<ProgressBar> {
+        Box::new(ProgressBar {
+            attr: attr.unwrap_or_default().height(3).to_owned(),
+            bar_color,
+            progress: 0,
+        })
     }
 
     pub fn progress(&mut self, value: usize) {

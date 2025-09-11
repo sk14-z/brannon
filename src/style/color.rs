@@ -18,25 +18,6 @@ pub enum Color {
     RGB(usize, usize, usize),
 }
 
-impl Color {
-    pub fn to_bg(&self) -> ColorBG {
-        match self {
-            Color::None => ColorBG::None,
-            Color::Reset => ColorBG::Reset,
-            Color::Black => ColorBG::Black,
-            Color::Red => ColorBG::Red,
-            Color::Green => ColorBG::Green,
-            Color::Yellow => ColorBG::Yellow,
-            Color::Blue => ColorBG::Blue,
-            Color::Magenta => ColorBG::Magenta,
-            Color::Cyan => ColorBG::Cyan,
-            Color::White => ColorBG::White,
-            Color::ID(id) => ColorBG::ID(*id),
-            Color::RGB(r, g, b) => ColorBG::RGB(*r, *g, *b),
-        }
-    }
-}
-
 impl super::PrintableStyle for Color {
     fn print(&self) -> String {
         match self {
@@ -52,6 +33,25 @@ impl super::PrintableStyle for Color {
             Color::White => String::from("\x1b[37m"),
             Color::ID(id) => format!("\x1b[38;5;{}m", id),
             Color::RGB(r, g, b) => format!("\x1b[38;2;{};{};{}m", r, g, b),
+        }
+    }
+}
+
+impl Color {
+    pub fn to_bg(&self) -> ColorBG {
+        match self {
+            Color::None => ColorBG::None,
+            Color::Reset => ColorBG::Reset,
+            Color::Black => ColorBG::Black,
+            Color::Red => ColorBG::Red,
+            Color::Green => ColorBG::Green,
+            Color::Yellow => ColorBG::Yellow,
+            Color::Blue => ColorBG::Blue,
+            Color::Magenta => ColorBG::Magenta,
+            Color::Cyan => ColorBG::Cyan,
+            Color::White => ColorBG::White,
+            Color::ID(id) => ColorBG::ID(*id),
+            Color::RGB(r, g, b) => ColorBG::RGB(*r, *g, *b),
         }
     }
 }
@@ -110,3 +110,7 @@ impl ColorBG {
         }
     }
 }
+
+// pub struct ColorFunction {
+//     func: Box<dyn Fn() -> Color>,
+// }

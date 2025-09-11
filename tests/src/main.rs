@@ -1,11 +1,12 @@
-use std::fs::File;
+use std::{fs::File, ops::Deref};
 
 use brannon::{
-    app::App,
+    app::{cache::*, App},
     draw::cursor::left,
     key::Key,
     log::Logger,
     panel::Panel,
+    printf,
     style::{
         align::{AlignX, AlignY},
         color::{Color, ColorBG},
@@ -26,80 +27,47 @@ use brannon::{
 fn init(app: &mut App) {
     app.frame
         .attr
-        .alignx(AlignX::Center)
-        .aligny(AlignY::Center)
+        .align(AlignX::Center, AlignY::Center)
         .title(String::from("Brannon"));
 
-    let label = Label::new(
-        String::from("C to change color"),
-        Attr::new()
-            .tag("la")
-            .width(Unit::Cor(30))
-            .height(Unit::Cor(5))
-            .padding(Unit::Cor(1))
-            .alignx(AlignX::Center)
-            .aligny(AlignY::Center)
-            .text_color(Color::Cyan)
-            .text_style(Text::Underline)
-            .border_color(Color::Cyan)
-            .wrap(),
-    );
+    let mut label_style = Attr::new()
+        .size(30, 5)
+        .padding(1)
+        .align(AlignX::Center, AlignY::Center)
+        .text_color(Color::Cyan)
+        .text_style(Text::Underline)
+        .border_color(Color::Cyan)
+        .clone();
 
-    let mut c1 = Container::new(Attr::new().tag("c1").height(Unit::Cor(0)).wrap());
-    c1.attr.orientation(Orientation::Horizontal);
-    let mut c2 = Container::new(Attr::new().tag("c2").height(Unit::Cor(0)).wrap());
-    c2.attr.orientation(Orientation::Horizontal);
-
-    let l1 = Label::new(
-        String::from("This isn't hidden"),
-        Attr::new()
-            .tag("12")
-            .width(Unit::Cor(30))
-            .height(Unit::Cor(5))
-            .padding(Unit::Cor(1))
-            .alignx(AlignX::Center)
-            .aligny(AlignY::Center)
-            .text_color(Color::Cyan)
-            .text_style(Text::Underline)
-            .border_color(Color::Cyan)
-            .wrap(),
-    );
+    let label = Label::new(String::from("Press c dummy"), label_style.tag("la").wrap());
+    let l1 = ProgressBar::new(ColorBG::Cyan, label_style.tag("11").wrap());
     let l2 = Label::new(
         String::from("This also isn't hidden"),
-        Attr::new()
-            .tag("l2")
-            .width(Unit::Cor(30))
-            .height(Unit::Cor(5))
-            .padding(Unit::Cor(1))
-            .alignx(AlignX::Center)
-            .aligny(AlignY::Center)
-            .text_color(Color::Cyan)
-            .text_style(Text::Underline)
-            .border_color(Color::Cyan)
-            .wrap(),
+        label_style.tag("l2").wrap(),
     );
     let hidden = Label::new(
-        String::from("Should be hidden but isn't"),
-        Attr::new()
-            .tag("target")
-            .width(Unit::Cor(30))
-            .height(Unit::Cor(5))
-            .padding(Unit::Cor(1))
-            .alignx(AlignX::Center)
-            .aligny(AlignY::Center)
-            .text_color(Color::Cyan)
-            .text_style(Text::Underline)
-            .border_color(Color::Cyan)
-            .wrap(),
+        String::from("This isn't hidden"),
+        label_style.tag("target").wrap(),
     );
 
-    c1.add(l1);
-    c1.add(label);
-    c2.add(l2);
-    c2.add(hidden);
+    let mut c1 = Container::new(Attr::new().tag("c1").height(0).wrap());
+    c1.attr
+        .orientation(Orientation::Horizontal)
+        .aligny(AlignY::Center);
+    c1.addm(vec![l1, label]);
 
-    app.frame.add(c1);
-    app.frame.add(c2);
+    let mut c2 = Container::new(
+        Attr::new()
+            .tag("c2")
+            .height(0)
+            .binds(vec![(Key::C, String::from("Unhide it dummy"))])
+            .binds_align(AlignX::Center)
+            .wrap(),
+    );
+    c2.attr.orientation(Orientation::Horizontal);
+    c2.addm(vec![l2, hidden]);
+
+    app.frame.addm(vec![c1, c2]);
 }
 
 fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
@@ -107,11 +75,23 @@ fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
         if key == Key::q {
             return None;
         } else if key == Key::c {
-            app.get_widget("target")?.as_label()?.hide();
-            app.frame.children[1].as_container()?.shrink();
+            let w = app.frame.children[1].as_container()?.remove("target");
+
+            if let Some(label) = w {
+                app.cache::<Box<dyn Widget>>().add("removed", label);
+                app.frame.style_all(|w| {
+                    w.style_mut().border_color(Color::Green);
+                });
+            }
         } else if key == Key::C {
-            app.get_widget("target")?.as_label()?.show();
-            app.frame.children[1].as_container()?.flex();
+            let w = app.cache::<Box<dyn Widget>>().remove("removed");
+
+            if let Some(label) = w {
+                app.frame.children[1].as_container()?.add(*label);
+                app.frame.style_all(|w| {
+                    w.style_mut().border_color(Color::Cyan);
+                });
+            }
         }
     }
 
@@ -120,6 +100,7 @@ fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
 
 fn main() {
     let mut app = App::new();
+
     app.init = init;
     app.run = run;
     app.start();

@@ -63,6 +63,14 @@ impl Terminal {
         }
     }
 
+    pub fn save() {
+        printlnf!("\x1b[?47h");
+    }
+
+    pub fn restore() {
+        printlnf!("\x1b[?47l\x1b[?25h");
+    }
+
     pub fn make_canonical(&mut self) {
         unsafe {
             tcsetattr(STDIN_FILENO, TCSANOW, &self.canonical_mode);
