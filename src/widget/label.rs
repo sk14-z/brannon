@@ -2,30 +2,26 @@ use super::{attr::Attr, Widget};
 use crate::{
     draw::cursor,
     style::{
-        self,
         align::{AlignX, AlignY},
         set_style,
     },
     unit::{Point, Unit},
+    widget_shared,
 };
+use std::any::Any;
 
 pub struct Label {
     pub attr: Attr,
-    text: String,
+    pub text: String,
 }
 
 impl Widget for Label {
-    fn style(&self) -> &Attr {
-        &(self.attr)
-    }
-
-    fn style_mut(&mut self) -> &mut Attr {
-        &mut (self.attr)
-    }
+    widget_shared!();
 
     fn render(&self, anchor: Point) {
         set_style(self.attr.text_style);
         set_style(self.attr.text_color);
+        set_style(self.attr.fill);
 
         let mut lines: Vec<String> = self
             .text
@@ -58,14 +54,6 @@ impl Widget for Label {
             printf!("{}", line);
             pos.y += Unit::Cor(1);
         }
-
-        style::reset();
-
-        self.render_border(anchor);
-    }
-
-    fn as_label(&mut self) -> Option<&mut Self> {
-        Some(self)
     }
 }
 
@@ -75,9 +63,5 @@ impl Label {
             attr: attr.unwrap_or_default(),
             text,
         })
-    }
-
-    pub fn text(&mut self, value: String) {
-        self.text = value;
     }
 }

@@ -3,7 +3,9 @@ use crate::{
     draw::cursor,
     style::{self, color::ColorBG, set_style},
     unit::{Point, Unit},
+    widget_shared,
 };
+use std::any::Any;
 
 pub struct ProgressBar {
     pub attr: Attr,
@@ -12,13 +14,7 @@ pub struct ProgressBar {
 }
 
 impl Widget for ProgressBar {
-    fn style(&self) -> &Attr {
-        &(self.attr)
-    }
-
-    fn style_mut(&mut self) -> &mut Attr {
-        &mut (self.attr)
-    }
+    widget_shared!();
 
     fn render(&self, anchor: Point) {
         set_style(self.bar_color);
@@ -32,24 +28,16 @@ impl Widget for ProgressBar {
             )
         );
 
-        set_style(self.attr.text_style);
         set_style(self.attr.text_color);
+        set_style(self.attr.text_style);
 
         if self.progress < 53 {
-            style::reset();
+            set_style(self.attr.fill);
         }
 
         pos.x += Unit::Cor(self.attr.width.calc() / 2);
         cursor::go(pos);
         printf!("{}%", self.progress);
-
-        style::reset();
-
-        self.render_border(anchor);
-    }
-
-    fn as_progress_bar(&mut self) -> Option<&mut Self> {
-        Some(self)
     }
 }
 

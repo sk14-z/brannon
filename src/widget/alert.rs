@@ -7,7 +7,7 @@ use crate::{
         color::{Color, ColorBG},
         line::Line,
         set_style,
-        text::Text,
+        text::TextStyle,
     },
     unit::{Point, Unit},
 };
@@ -75,53 +75,53 @@ impl Alert {
 
         style::reset();
 
-        if !self.attr.hide_border {
-            if self.attr.arc {
-                draw_arc_box(
-                    anchor,
-                    self.attr.border_color,
-                    self.attr.width.calc(),
-                    self.attr.height.calc(),
-                );
-            } else {
-                draw_box(
-                    anchor,
-                    if self.attr.selected {
-                        Line::Heavy
-                    } else {
-                        Line::Light
-                    },
-                    self.attr.border_color,
-                    self.attr.width.calc(),
-                    self.attr.height.calc(),
-                );
-            }
-
-            if !self.attr.hide_title {
-                draw_title(
-                    anchor,
-                    self.attr.width.calc(),
-                    self.attr.title.clone(),
-                    self.attr.border_color,
-                    self.attr.title_align,
-                );
-            }
-
-            if !self.attr.hide_binds {
-                draw_binds(
-                    Point::from(anchor, Unit::Cor(0), Unit::Cor(self.attr.height.calc() - 1)),
-                    self.attr.width.calc(),
-                    self.attr
-                        .binds
-                        .iter()
-                        .map(|bind| format!("<{}> {}", bind.0.to_char().unwrap_or(' '), bind.1))
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                    self.attr.border_color,
-                    self.attr.binds_align,
-                );
-            }
-        }
+        // if !self.attr.hide_border {
+        //     if self.attr.arc {
+        //         draw_arc_box(
+        //             anchor,
+        //             self.attr.border_color,
+        //             self.attr.width.calc(),
+        //             self.attr.height.calc(),
+        //         );
+        //     } else {
+        //         draw_box(
+        //             anchor,
+        //             if self.attr.selected {
+        //                 Line::Heavy
+        //             } else {
+        //                 Line::Light
+        //             },
+        //             self.attr.border_color,
+        //             self.attr.width.calc(),
+        //             self.attr.height.calc(),
+        //         );
+        //     }
+        //
+        //     if !self.attr.hide_title {
+        //         draw_title(
+        //             anchor,
+        //             self.attr.width.calc(),
+        //             self.attr.title.clone(),
+        //             self.attr.border_color,
+        //             self.attr.title_align,
+        //         );
+        //     }
+        //
+        //     if !self.attr.hide_binds {
+        //         draw_binds(
+        //             Point::from(anchor, Unit::Cor(0), Unit::Cor(self.attr.height.calc() - 1)),
+        //             self.attr.width.calc(),
+        //             self.attr
+        //                 .binds
+        //                 .iter()
+        //                 .map(|bind| format!("<{}> {}", bind.0.to_char().unwrap_or(' '), bind.1))
+        //                 .collect::<Vec<_>>()
+        //                 .join(" "),
+        //             self.attr.border_color,
+        //             self.attr.binds_align,
+        //         );
+        //     }
+        // }
     }
 
     fn as_alert(&mut self) -> Option<&mut Self> {

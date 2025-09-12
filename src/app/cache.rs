@@ -25,17 +25,39 @@ impl<T> AppCache<T> {
         }
     }
 
-    pub fn get(&mut self, name: &'static str) -> Option<&Box<T>> {
+    pub fn get(&mut self, name: &'static str) -> Option<&T> {
         if let Some(i) = self.keys.iter().position(|w| w == name) {
-            self.buf.get(i)
+            Some(self.buf.get(i)?)
         } else {
             None
         }
     }
 
-    pub fn get_mut(&mut self, name: &'static str) -> Option<&mut Box<T>> {
+    pub fn get_mut(&mut self, name: &'static str) -> Option<&mut T> {
         if let Some(i) = self.keys.iter().position(|w| w == name) {
-            self.buf.get_mut(i)
+            Some(self.buf.get_mut(i)?)
+        } else {
+            None
+        }
+    }
+
+    pub fn set(&mut self, name: &'static str, value: T) -> Option<()> {
+        if let Some(i) = self.keys.iter().position(|w| w == name) {
+            self.buf[i] = Box::new(value);
+            Some(())
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> AppCache<T>
+where
+    T: Clone,
+{
+    pub fn value(&self, name: &'static str) -> Option<T> {
+        if let Some(i) = self.keys.iter().position(|w| w == name) {
+            Some(*self.buf.get(i)?.clone())
         } else {
             None
         }

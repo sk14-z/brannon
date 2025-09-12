@@ -4,18 +4,41 @@ pub mod container;
 pub mod label;
 pub mod progress_bar;
 
-use std::ops::{Deref, DerefMut};
-
 use crate::{
-    draw::{draw_arc_box, draw_binds, draw_box, draw_title},
-    panel::frame,
-    style::line::Line,
-    unit::{Point, Unit},
+    draw::{cursor, draw_arc_box, draw_binds, draw_box, draw_title},
+    panel::Panel,
+    style::{line::Line, set_style},
+    unit::Point,
 };
-
 use attr::Attr;
+use std::any::Any;
 
-pub trait Widget {
+#[macro_export]
+macro_rules! widget_shared {
+    () => {
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+
+        fn as_any_mut(&mut self) -> &mut dyn Any {
+            self
+        }
+
+        fn style(&self) -> &Attr {
+            &(self.attr)
+        }
+
+        fn style_mut(&mut self) -> &mut Attr {
+            &mut (self.attr)
+        }
+    };
+}
+
+pub trait Widget: Any {
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+
     fn style(&self) -> &Attr;
 
     fn style_mut(&mut self) -> &mut Attr;
@@ -24,86 +47,48 @@ pub trait Widget {
         (*self.style_mut()) = attr;
     }
 
-    fn hide(&mut self) {
-        self.style_mut().hide = true;
-    }
-    fn show(&mut self) {
-        self.style_mut().hide = false;
+    fn as_panel(&mut self) -> Option<&mut dyn Panel> {
+        None
     }
 
     fn render(&self, anchor: Point);
 
-    fn render_border(&self, anchor: Point) {
-        if !self.style().hide_border {
-            if self.style().arc {
-                draw_arc_box(
-                    anchor,
-                    self.style().border_color,
-                    self.style().width.calc(),
-                    self.style().height.calc(),
-                );
-            } else {
-                draw_box(
-                    anchor,
-                    if self.style().selected {
-                        Line::Heavy
-                    } else {
-                        Line::Light
-                    },
-                    self.style().border_color,
-                    self.style().width.calc(),
-                    self.style().height.calc(),
-                );
-            }
+    fn outline(&self, anchor: Point) {
+        self.fill(anchor);
+        self.border(anchor);
+    }
 
-            if !self.style().hide_title {
-                draw_title(
-                    anchor,
-                    self.style().width.calc(),
-                    self.style().title.clone(),
-                    self.style().border_color,
-                    self.style().title_align,
-                );
-            }
+    fn fill(&self, anchor: Point) {
+        // if self.style().fill != ColorBG::None {
+        set_style(self.style().fill);
+        let h = self.style().height.calc();
+        let s = " ".repeat(self.style().width.calc());
+        let mut pos = anchor;
 
-            if !self.style().hide_binds {
-                draw_binds(
-                    Point::from(
-                        anchor,
-                        Unit::Cor(0),
-                        Unit::Cor(self.style().height.calc() - 1),
-                    ),
-                    self.style().width.calc(),
-                    self.style()
-                        .binds
-                        .iter()
-                        .map(|bind| format!("<{}> {}", bind.0.to_char().unwrap_or(' '), bind.1))
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                    self.style().border_color,
-                    self.style().binds_align,
-                );
-            }
+        for _ in 0..h {
+            cursor::go(pos);
+            printf!("{}", s);
+            pos.y += 1.into();
         }
+        // }
     }
 
-    fn as_alert(&mut self) -> Option<&mut alert::Alert> {
-        None
-    }
+    fn border(&self, anchor: Point) {
+        if self.style().arc {
+            draw_arc_box(anchor, self.style());
+        } else {
+            draw_box(
+                anchor,
+                self.style(),
+                if self.style().selected {
+                    Line::Heavy
+                } else {
+                    Line::Light
+                },
+            );
+        }
 
-    fn as_label(&mut self) -> Option<&mut label::Label> {
-        None
-    }
-
-    fn as_progress_bar(&mut self) -> Option<&mut progress_bar::ProgressBar> {
-        None
-    }
-
-    fn as_container(&mut self) -> Option<&mut container::Container> {
-        None
-    }
-
-    fn as_frame(&mut self) -> Option<&mut frame::Frame> {
-        None
+        draw_title(anchor, self.style());
+        draw_binds(anchor, self.style());
     }
 }

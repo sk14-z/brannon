@@ -1,8 +1,7 @@
-use std::{fs::File, ops::Deref};
+mod widget;
 
 use brannon::{
-    app::{cache::*, App},
-    draw::cursor::left,
+    app::App,
     key::Key,
     log::Logger,
     panel::Panel,
@@ -11,33 +10,29 @@ use brannon::{
         align::{AlignX, AlignY},
         color::{Color, ColorBG},
         orientation::Orientation,
-        text::Text,
+        text::TextStyle,
     },
-    unit::Unit,
-    widget::{
-        alert::{Alert, AlertType},
-        attr::Attr,
-        container::Container,
-        label::Label,
-        progress_bar::ProgressBar,
-        Widget,
-    },
+    widget::{attr::Attr, container::Container, label::Label, progress_bar::ProgressBar, Widget},
 };
+
+use widget::MyWidget;
 
 fn init(app: &mut App) {
     app.frame
         .attr
         .align(AlignX::Center, AlignY::Center)
+        .fill(ColorBG::RGB(255, 255, 255))
+        .border_fill(ColorBG::RGB(100, 100, 100))
         .title(String::from("Brannon"));
 
     let mut label_style = Attr::new()
         .size(30, 5)
         .padding(1)
         .align(AlignX::Center, AlignY::Center)
-        .text_color(Color::Cyan)
-        .text_style(Text::Underline)
-        .border_color(Color::Cyan)
+        .fill(ColorBG::RGB(50, 0, 100))
         .clone();
+
+    let mine = MyWidget::new(label_style.tag("mine").wrap());
 
     let label = Label::new(String::from("Press c dummy"), label_style.tag("la").wrap());
     let l1 = ProgressBar::new(ColorBG::Cyan, label_style.tag("11").wrap());
@@ -50,17 +45,17 @@ fn init(app: &mut App) {
         label_style.tag("target").wrap(),
     );
 
-    let mut c1 = Container::new(Attr::new().tag("c1").height(0).wrap());
+    let mut c1 = Container::new(Attr::new().tag("c1").fill(ColorBG::Green).flex(true).wrap());
     c1.attr
         .orientation(Orientation::Horizontal)
         .aligny(AlignY::Center);
-    c1.addm(vec![l1, label]);
+    c1.addm(vec![l1, mine, label]);
 
     let mut c2 = Container::new(
         Attr::new()
             .tag("c2")
-            .height(0)
-            .binds(vec![(Key::C, String::from("Unhide it dummy"))])
+            .flex(true)
+            .binds(vec![(Key::c, String::from("Unhide it dummy"))])
             .binds_align(AlignX::Center)
             .wrap(),
     );
@@ -75,23 +70,11 @@ fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
         if key == Key::q {
             return None;
         } else if key == Key::c {
-            let w = app.frame.children[1].as_container()?.remove("target");
-
-            if let Some(label) = w {
-                app.cache::<Box<dyn Widget>>().add("removed", label);
-                app.frame.style_all(|w| {
-                    w.style_mut().border_color(Color::Green);
-                });
-            }
-        } else if key == Key::C {
-            let w = app.cache::<Box<dyn Widget>>().remove("removed");
-
-            if let Some(label) = w {
-                app.frame.children[1].as_container()?.add(*label);
-                app.frame.style_all(|w| {
-                    w.style_mut().border_color(Color::Cyan);
-                });
-            }
+            app.toggle_widget("target");
+        } else if key == Key::i {
+            app.get_widget::<ProgressBar>("11")?.inc_progress(10);
+        } else if key == Key::d {
+            app.get_widget::<ProgressBar>("11")?.dec_progress(10);
         }
     }
 
