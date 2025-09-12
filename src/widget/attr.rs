@@ -1,16 +1,22 @@
 use crate::{
     key::Key,
-    style::{align::*, color::Color, orientation::Orientation, text::Text},
+    style::{
+        align::*,
+        color::{Color, ColorBG},
+        orientation::Orientation,
+        text::TextStyle,
+    },
     unit::*,
     widget::Widget,
 };
 
 #[derive(Clone)]
 pub struct Attr {
+    pub(crate) hide: bool,
+
     pub(crate) tag: &'static str,
     pub(crate) selected: bool,
-    pub(crate) hide: bool,
-    pub(crate) expand: bool,
+    pub(crate) flex: bool,
 
     pub(crate) orientation: Orientation,
 
@@ -25,12 +31,16 @@ pub struct Attr {
     pub(crate) alignx: AlignX,
     pub(crate) aligny: AlignY,
 
-    pub(crate) text_style: Text,
+    pub(crate) text_style: TextStyle,
     pub(crate) text_color: Color,
 
+    pub(crate) fill: ColorBG,
+
     pub(crate) arc: bool,
+
     pub(crate) hide_border: bool,
     pub(crate) border_color: Color,
+    pub(crate) border_fill: ColorBG,
 
     pub(crate) title: String,
     pub(crate) hide_title: bool,
@@ -50,10 +60,10 @@ impl Default for Attr {
 impl Attr {
     pub fn new() -> Attr {
         Attr {
+            hide: false,
             tag: "",
             selected: false,
-            hide: false,
-            expand: false,
+            flex: false,
             orientation: Orientation::Vertical,
             width: Unit::Cor(0),
             height: Unit::Cor(0),
@@ -63,11 +73,13 @@ impl Attr {
             padding_left: Unit::Cor(0),
             alignx: AlignX::Left,
             aligny: AlignY::Top,
-            text_style: Text::NoBold,
+            fill: ColorBG::None,
+            text_style: TextStyle::NoBold,
             text_color: Color::None,
             arc: false,
             hide_border: false,
             border_color: Color::None,
+            border_fill: ColorBG::None,
             title: String::new(),
             hide_title: true,
             title_align: AlignX::Left,
@@ -75,6 +87,10 @@ impl Attr {
             hide_binds: true,
             binds_align: AlignX::Left,
         }
+    }
+
+    pub fn hidden(&mut self) -> bool {
+        self.hide
     }
 
     pub fn wrap(&mut self) -> Option<Attr> {
@@ -86,8 +102,8 @@ impl Attr {
         self
     }
 
-    pub fn expand(&mut self, value: bool) -> &mut Attr {
-        self.expand = value;
+    pub fn flex(&mut self, value: bool) -> &mut Attr {
+        self.flex = value;
         self
     }
 
@@ -149,7 +165,7 @@ impl Attr {
         self
     }
 
-    pub fn paddingm<T: Into<Unit> + Copy>(&mut self, value: &[T]) -> &mut Attr {
+    pub fn paddingd<T: Into<Unit> + Copy>(&mut self, value: &[T]) -> &mut Attr {
         match value.len() {
             1 => {
                 let p = value[0].into();
@@ -227,7 +243,19 @@ impl Attr {
         self
     }
 
-    pub fn text_style(&mut self, value: Text) -> &mut Attr {
+    pub fn fill(&mut self, value: ColorBG) -> &mut Attr {
+        self.fill = value;
+        self.border_fill = value;
+        self
+    }
+
+    pub fn text(&mut self, style_value: TextStyle, color_value: Color) -> &mut Attr {
+        self.text_style = style_value;
+        self.text_color = color_value;
+        self
+    }
+
+    pub fn text_style(&mut self, value: TextStyle) -> &mut Attr {
         self.text_style = value;
         self
     }
@@ -249,6 +277,11 @@ impl Attr {
 
     pub fn border_color(&mut self, value: Color) -> &mut Attr {
         self.border_color = value;
+        self
+    }
+
+    pub fn border_fill(&mut self, value: ColorBG) -> &mut Attr {
+        self.border_fill = value;
         self
     }
 

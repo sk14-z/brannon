@@ -1,5 +1,5 @@
-#[derive(Copy, Clone)]
-pub enum Text {
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum TextStyle {
     Bold,
     Dim,
     Italic,
@@ -18,24 +18,24 @@ pub enum Text {
     NoStrikethrough,
 }
 
-impl super::PrintableStyle for Text {
+impl super::PrintableStyle for TextStyle {
     fn print(&self) -> String {
         match self {
-            Text::Bold => String::from("\x1b[1m"),
-            Text::Dim => String::from("\x1b[2m"),
-            Text::Italic => String::from("\x1b[3m"),
-            Text::Underline => String::from("\x1b[4m"),
-            Text::Blinking => String::from("\x1b[5m"),
-            Text::Inverse => String::from("\x1b[7m"),
-            Text::Hidden => String::from("\x1b[8m"),
-            Text::Strikethrough => String::from("\x1b[9m"),
-            Text::NoBold | Text::NoDim => String::from("\x1b[22m"),
-            Text::NoItalic => String::from("\x1b[23m"),
-            Text::NoUnderline => String::from("\x1b[24m"),
-            Text::NoBlinking => String::from("\x1b[25m"),
-            Text::NoInverse => String::from("\x1b[27m"),
-            Text::NoHidden => String::from("\x1b[28m"),
-            Text::NoStrikethrough => String::from("\x1b[29m"),
+            TextStyle::Bold => String::from("\x1b[1m"),
+            TextStyle::Dim => String::from("\x1b[2m"),
+            TextStyle::Italic => String::from("\x1b[3m"),
+            TextStyle::Underline => String::from("\x1b[4m"),
+            TextStyle::Blinking => String::from("\x1b[5m"),
+            TextStyle::Inverse => String::from("\x1b[7m"),
+            TextStyle::Hidden => String::from("\x1b[8m"),
+            TextStyle::Strikethrough => String::from("\x1b[9m"),
+            TextStyle::NoBold | TextStyle::NoDim => String::from("\x1b[22m"),
+            TextStyle::NoItalic => String::from("\x1b[23m"),
+            TextStyle::NoUnderline => String::from("\x1b[24m"),
+            TextStyle::NoBlinking => String::from("\x1b[25m"),
+            TextStyle::NoInverse => String::from("\x1b[27m"),
+            TextStyle::NoHidden => String::from("\x1b[28m"),
+            TextStyle::NoStrikethrough => String::from("\x1b[29m"),
         }
     }
 }

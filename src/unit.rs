@@ -52,7 +52,7 @@ impl Unit {
             Unit::Cor(n) => *n,
             Unit::PctH(n) => {
                 if *n == 100 {
-                    get_tsz().0 - 1
+                    get_tsz().0
                 } else {
                     (((*n as f32) / 100.0) * (crate::app::get_tsz().0 as f32)) as usize
                 }

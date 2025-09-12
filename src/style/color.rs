@@ -2,7 +2,7 @@
 // RGB requires a true color terminal
 
 // Foreground
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Color {
     None,
     Reset,
@@ -57,7 +57,7 @@ impl Color {
 }
 
 // Background
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ColorBG {
     None,
     Reset,

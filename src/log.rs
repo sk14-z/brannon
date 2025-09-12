@@ -1,4 +1,4 @@
-use crate::style::{color::Color, text::Text, PrintableStyle};
+use crate::style::{color::Color, text::TextStyle, PrintableStyle};
 use std::{fmt::Display, io::Write};
 use time::{format_description, OffsetDateTime};
 
@@ -35,11 +35,22 @@ impl Logger {
         }
     }
 
+    pub fn file(path: &str) -> Option<Logger> {
+        match std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+        {
+            Ok(file) => Some(Logger::new(file)),
+            Err(_) => None,
+        }
+    }
+
     pub fn log(&mut self, flag: LogFlag, msg: impl Display) {
         _ = writeln!(
             self.stream,
             "{}[{}] {}\x1b[0m {}",
-            Text::Bold.print(),
+            TextStyle::Bold.print(),
             OffsetDateTime::now_local()
                 .unwrap()
                 .format(&format_description::parse("[hour]:[minute]:[second]").unwrap())
@@ -56,6 +67,6 @@ impl Logger {
 
 impl Drop for Logger {
     fn drop(&mut self) {
-        _ = writeln!(self.stream, "\nEND OF LOG\n");
+        _ = writeln!(self.stream, "\n----------END OF LOG----------\n");
     }
 }
