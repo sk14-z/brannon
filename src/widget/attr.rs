@@ -1,5 +1,5 @@
 use crate::{
-    key::Key,
+    key::{Key, binds::KeyBinds},
     style::{
         align::*,
         color::{Color, ColorBG},
@@ -12,43 +12,44 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Attr {
-    pub(crate) hide: bool,
+    pub hide: bool,
 
-    pub(crate) tag: &'static str,
+    pub(crate) tag: String,
     pub(crate) selected: bool,
-    pub(crate) flex: bool,
 
-    pub(crate) orientation: Orientation,
+    pub flex: bool,
 
-    pub(crate) width: Unit,
-    pub(crate) height: Unit,
+    pub orientation: Orientation,
 
-    pub(crate) padding_top: Unit,
-    pub(crate) padding_right: Unit,
-    pub(crate) padding_bottom: Unit,
-    pub(crate) padding_left: Unit,
+    pub width: Unit,
+    pub height: Unit,
 
-    pub(crate) alignx: AlignX,
-    pub(crate) aligny: AlignY,
+    pub padding_top: Unit,
+    pub padding_right: Unit,
+    pub padding_bottom: Unit,
+    pub padding_left: Unit,
 
-    pub(crate) text_style: TextStyle,
-    pub(crate) text_color: Color,
+    pub alignx: AlignX,
+    pub aligny: AlignY,
 
-    pub(crate) fill: ColorBG,
+    pub text_style: TextStyle,
+    pub text_color: Color,
 
-    pub(crate) arc: bool,
+    pub fill: ColorBG,
 
-    pub(crate) hide_border: bool,
-    pub(crate) border_color: Color,
-    pub(crate) border_fill: ColorBG,
+    pub arc: bool,
 
-    pub(crate) title: String,
-    pub(crate) hide_title: bool,
-    pub(crate) title_align: AlignX,
+    pub hide_border: bool,
+    pub border_color: Color,
+    pub border_fill: ColorBG,
 
-    pub(crate) binds: Vec<(Key, String)>,
-    pub(crate) hide_binds: bool,
-    pub(crate) binds_align: AlignX,
+    pub title: String,
+    pub hide_title: bool,
+    pub title_align: AlignX,
+
+    pub binds: KeyBinds,
+    pub hide_binds: bool,
+    pub binds_align: AlignX,
 }
 
 impl Default for Attr {
@@ -61,29 +62,29 @@ impl Attr {
     pub fn new() -> Attr {
         Attr {
             hide: false,
-            tag: "",
+            tag: String::new(),
             selected: false,
             flex: false,
             orientation: Orientation::Vertical,
             width: Unit::Cor(0),
             height: Unit::Cor(0),
-            padding_top: Unit::Cor(0),
-            padding_right: Unit::Cor(0),
-            padding_bottom: Unit::Cor(0),
-            padding_left: Unit::Cor(0),
+            padding_top: Unit::Cor(1),
+            padding_right: Unit::Cor(1),
+            padding_bottom: Unit::Cor(1),
+            padding_left: Unit::Cor(1),
             alignx: AlignX::Left,
             aligny: AlignY::Top,
             fill: ColorBG::None,
             text_style: TextStyle::NoBold,
-            text_color: Color::None,
+            text_color: Color::White,
             arc: false,
             hide_border: false,
-            border_color: Color::None,
+            border_color: Color::White,
             border_fill: ColorBG::None,
             title: String::new(),
             hide_title: true,
             title_align: AlignX::Left,
-            binds: vec![],
+            binds: KeyBinds::new(),
             hide_binds: true,
             binds_align: AlignX::Left,
         }
@@ -97,18 +98,33 @@ impl Attr {
         Some(self.to_owned())
     }
 
-    pub fn tag(&mut self, value: &'static str) -> &mut Attr {
-        self.tag = value;
+    pub fn tag(&mut self, value: impl Into<String>) -> &mut Attr {
+        self.tag = value.into();
         self
     }
 
-    pub fn flex(&mut self, value: bool) -> &mut Attr {
-        self.flex = value;
+    pub fn flex(&mut self) -> &mut Attr {
+        self.flex = true;
+        self
+    }
+
+    pub fn no_flex(&mut self) -> &mut Attr {
+        self.flex = false;
         self
     }
 
     pub fn orientation(&mut self, value: Orientation) -> &mut Attr {
         self.orientation = value;
+        self
+    }
+
+    pub fn horizontal(&mut self) -> &mut Attr {
+        self.orientation = Orientation::Horizontal;
+        self
+    }
+
+    pub fn vertical(&mut self) -> &mut Attr {
+        self.orientation = Orientation::Vertical;
         self
     }
 
@@ -156,15 +172,6 @@ impl Attr {
         self
     }
 
-    pub fn padding(&mut self, value: impl Into<Unit>) -> &mut Attr {
-        let value = value.into();
-        self.padding_top = value;
-        self.padding_right = value;
-        self.padding_bottom = value;
-        self.padding_left = value;
-        self
-    }
-
     pub fn paddingd<T: Into<Unit> + Copy>(&mut self, value: &[T]) -> &mut Attr {
         match value.len() {
             1 => {
@@ -190,6 +197,15 @@ impl Attr {
             }
             _ => {}
         }
+        self
+    }
+
+    pub fn pad(&mut self, value: impl Into<Unit>) -> &mut Attr {
+        let value = value.into();
+        self.padding_top = value;
+        self.padding_right = value;
+        self.padding_bottom = value;
+        self.padding_left = value;
         self
     }
 
@@ -233,8 +249,27 @@ impl Attr {
         self
     }
 
+    pub fn center(&mut self) -> &mut Attr {
+        self.alignx = AlignX::Center;
+        self.aligny = AlignY::Center;
+        self
+    }
+
+    pub fn center_all(&mut self) -> &mut Attr {
+        self.alignx = AlignX::Center;
+        self.aligny = AlignY::Center;
+        self.title_align = AlignX::Center;
+        self.binds_align = AlignX::Center;
+        self
+    }
+
     pub fn alignx(&mut self, value: AlignX) -> &mut Attr {
         self.alignx = value;
+        self
+    }
+
+    pub fn centerx(&mut self) -> &mut Attr {
+        self.alignx = AlignX::Center;
         self
     }
 
@@ -243,9 +278,20 @@ impl Attr {
         self
     }
 
+    pub fn centery(&mut self) -> &mut Attr {
+        self.aligny = AlignY::Center;
+        self
+    }
+
     pub fn fill(&mut self, value: ColorBG) -> &mut Attr {
         self.fill = value;
         self.border_fill = value;
+        self
+    }
+
+    pub fn fg(&mut self, value: Color) -> &mut Attr {
+        self.text_color = value;
+        self.border_color = value;
         self
     }
 
@@ -265,13 +311,23 @@ impl Attr {
         self
     }
 
-    pub fn arc(&mut self, value: bool) -> &mut Attr {
-        self.arc = value;
+    pub fn arc(&mut self) -> &mut Attr {
+        self.arc = true;
         self
     }
 
-    pub fn hide_border(&mut self, value: bool) -> &mut Attr {
-        self.hide_border = value;
+    pub fn square(&mut self) -> &mut Attr {
+        self.arc = false;
+        self
+    }
+
+    pub fn show_border(&mut self, value: bool) -> &mut Attr {
+        self.hide_border = !value;
+        self
+    }
+
+    pub fn hide_border(&mut self) -> &mut Attr {
+        self.hide_border = true;
         self
     }
 
@@ -285,14 +341,19 @@ impl Attr {
         self
     }
 
-    pub fn title(&mut self, value: String) -> &mut Attr {
-        self.title = value;
+    pub fn title(&mut self, value: impl Into<String>) -> &mut Attr {
+        self.title = value.into();
         self.hide_title = false;
         self
     }
 
-    pub fn hide_title(&mut self, value: bool) -> &mut Attr {
-        self.hide_title = value;
+    pub fn show_title(&mut self) -> &mut Attr {
+        self.hide_title = false;
+        self
+    }
+
+    pub fn hide_title(&mut self) -> &mut Attr {
+        self.hide_title = true;
         self
     }
 
@@ -301,14 +362,19 @@ impl Attr {
         self
     }
 
-    pub fn binds(&mut self, value: Vec<(Key, String)>) -> &mut Attr {
-        self.binds = value;
+    pub fn binds(&mut self, value: impl Into<KeyBinds>) -> &mut Attr {
+        self.binds = value.into();
         self.hide_binds = false;
         self
     }
 
-    pub fn hide_binds(&mut self, value: bool) -> &mut Attr {
-        self.hide_binds = value;
+    pub fn show_binds(&mut self) -> &mut Attr {
+        self.hide_binds = false;
+        self
+    }
+
+    pub fn hide_binds(&mut self) -> &mut Attr {
+        self.hide_binds = true;
         self
     }
 

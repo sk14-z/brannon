@@ -5,7 +5,6 @@
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Color {
     None,
-    Reset,
     Black,
     Red,
     Green,
@@ -21,8 +20,7 @@ pub enum Color {
 impl super::PrintableStyle for Color {
     fn print(&self) -> String {
         match self {
-            Color::None => String::new(),
-            Color::Reset => String::from("\x1b[39m"),
+            Color::None => String::from("\x1b[39m"),
             Color::Black => String::from("\x1b[30m"),
             Color::Red => String::from("\x1b[31m"),
             Color::Green => String::from("\x1b[32m"),
@@ -41,7 +39,6 @@ impl Color {
     pub fn to_bg(&self) -> ColorBG {
         match self {
             Color::None => ColorBG::None,
-            Color::Reset => ColorBG::Reset,
             Color::Black => ColorBG::Black,
             Color::Red => ColorBG::Red,
             Color::Green => ColorBG::Green,
@@ -60,7 +57,6 @@ impl Color {
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum ColorBG {
     None,
-    Reset,
     Black,
     Red,
     Green,
@@ -76,8 +72,7 @@ pub enum ColorBG {
 impl super::PrintableStyle for ColorBG {
     fn print(&self) -> String {
         match self {
-            ColorBG::None => String::new(),
-            ColorBG::Reset => String::from("\x1b[49m"),
+            ColorBG::None => String::from("\x1b[49m"),
             ColorBG::Black => String::from("\x1b[40m"),
             ColorBG::Red => String::from("\x1b[41m"),
             ColorBG::Green => String::from("\x1b[42m"),
@@ -96,7 +91,6 @@ impl ColorBG {
     pub fn to_fg(&self) -> Color {
         match self {
             ColorBG::None => Color::None,
-            ColorBG::Reset => Color::Reset,
             ColorBG::Black => Color::Black,
             ColorBG::Red => Color::Red,
             ColorBG::Green => Color::Green,

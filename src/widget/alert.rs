@@ -1,14 +1,7 @@
 use super::attr::Attr;
 use crate::{
-    draw::{cursor, draw_arc_box, draw_binds, draw_box, draw_title},
-    style::{
-        self,
-        align::AlignX,
-        color::{Color, ColorBG},
-        line::Line,
-        set_style,
-        text::TextStyle,
-    },
+    draw::cursor,
+    style::{self, color::Color, set_style},
     unit::{Point, Unit},
 };
 

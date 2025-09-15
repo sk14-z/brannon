@@ -1,4 +1,4 @@
-use super::{attr::Attr, Widget};
+use super::{Widget, attr::Attr};
 use crate::{
     draw::cursor,
     style::{self, color::ColorBG, set_style},
@@ -16,14 +16,14 @@ pub struct ProgressBar {
 impl Widget for ProgressBar {
     widget_shared!();
 
-    fn render(&self, anchor: Point) {
+    fn render(&mut self, anchor: Point) {
         set_style(self.bar_color);
 
         let mut pos = Point::from(anchor, Unit::Cor(1), Unit::Cor(1));
         cursor::go(pos);
         printf!(
             "{}",
-            String::from(" ").repeat(
+            " ".repeat(
                 (((self.progress as f32) / 100.0) * ((self.attr.width.calc() - 2) as f32)) as usize
             )
         );

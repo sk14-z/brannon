@@ -1,19 +1,15 @@
 use crate::{
     panel::Panel,
     panel_shared,
-    style::{
-        align::{AlignX, AlignY},
-        orientation::Orientation,
-    },
-    unit::{Point, Unit},
-    widget::{attr::Attr, Widget},
+    unit::Point,
+    widget::{Widget, attr::Attr},
     widget_shared,
 };
 use std::any::Any;
 
 pub struct Container {
     pub attr: Attr,
-    children: Vec<Box<dyn Widget>>,
+    pub children: Vec<Box<dyn Widget>>,
 }
 
 impl Panel for Container {
@@ -27,7 +23,7 @@ impl Widget for Container {
         Some(self)
     }
 
-    fn render(&self, anchor: Point) {
+    fn render(&mut self, anchor: Point) {
         self.render_children(Point::from(anchor, 1, 1));
     }
 }

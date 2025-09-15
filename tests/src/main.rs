@@ -2,7 +2,7 @@ mod widget;
 
 use brannon::{
     app::App,
-    key::Key,
+    key::{Key, binds::KeyBinds},
     log::Logger,
     panel::Panel,
     printf,
@@ -12,60 +12,91 @@ use brannon::{
         orientation::Orientation,
         text::TextStyle,
     },
-    widget::{attr::Attr, container::Container, label::Label, progress_bar::ProgressBar, Widget},
+    unit::Unit,
+    widget::{Widget, attr::Attr, container::Container, label::Label, progress_bar::ProgressBar},
 };
 
 use widget::MyWidget;
 
 fn init(app: &mut App) {
-    app.frame
-        .attr
-        .align(AlignX::Center, AlignY::Center)
-        .fill(ColorBG::RGB(255, 255, 255))
-        .border_fill(ColorBG::RGB(100, 100, 100))
-        .title(String::from("Brannon"));
+    app.frame.attr.center().title("Brannon");
 
-    let mut label_style = Attr::new()
-        .size(30, 5)
-        .padding(1)
-        .align(AlignX::Center, AlignY::Center)
-        .fill(ColorBG::RGB(50, 0, 100))
-        .clone();
+    let mut label_style = Attr::new().size(30, 5).pad(1).center().clone();
 
     let mine = MyWidget::new(label_style.tag("mine").wrap());
 
     let label = Label::new(String::from("Press c dummy"), label_style.tag("la").wrap());
-    let l1 = ProgressBar::new(ColorBG::Cyan, label_style.tag("11").wrap());
+
+    let l1 = ProgressBar::new(
+        ColorBG::Cyan,
+        label_style.clone().tag("11").width(75).wrap(),
+    );
+
     let l2 = Label::new(
-        String::from("This also isn't hidden"),
+        format!("{}", l1.attr.height.calc()),
         label_style.tag("l2").wrap(),
     );
+
     let hidden = Label::new(
         String::from("This isn't hidden"),
         label_style.tag("target").wrap(),
     );
 
-    let mut c1 = Container::new(Attr::new().tag("c1").fill(ColorBG::Green).flex(true).wrap());
-    c1.attr
-        .orientation(Orientation::Horizontal)
-        .aligny(AlignY::Center);
+    let gd = Label::new(
+        String::from("0"),
+        Attr::new()
+            // label_style
+            .tag("gd")
+            // .size(15, 5)
+            .size(Unit::Cor(15), Unit::PctV(30))
+            .center()
+            .fg(Color::Red)
+            .wrap(),
+    );
+
+    let mut c1 = Container::new(
+        Attr::new()
+            .tag("c1")
+            .fill(ColorBG::Green)
+            .horizontal()
+            .centery()
+            .flex()
+            .wrap(),
+    );
     c1.addm(vec![l1, mine, label]);
 
     let mut c2 = Container::new(
         Attr::new()
             .tag("c2")
-            .flex(true)
-            .binds(vec![(Key::c, String::from("Unhide it dummy"))])
-            .binds_align(AlignX::Center)
+            .horizontal()
+            .flex()
+            .center_all()
+            .binds(
+                KeyBinds::new()
+                    .bind(Key::C, "Hide")
+                    .bind(Key::I, "Inc")
+                    .bind(Key::D, "Dec"),
+            )
             .wrap(),
     );
-    c2.attr.orientation(Orientation::Horizontal);
-    c2.addm(vec![l2, hidden]);
+
+    c2.addm(vec![l2, hidden, gd]);
 
     app.frame.addm(vec![c1, c2]);
+
+    // app.map_all(|w| {
+    //     if w.as_panel().is_none() && w.style().fill == ColorBG::None {
+    //         w.style_mut().fill = ColorBG::Blue;
+    //     }
+    // });
 }
 
 fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
+    let c = app.get_widget::<Container>("c2")?;
+    let s = format!("{} {}", c.bounds().1.calc(), c.attr.height.calc());
+    let l = app.get_widget::<Label>("gd")?;
+    l.text = format!("inner/outer: {}, h: {}", s, l.attr.height.calc());
+
     if let Some(key) = input {
         if key == Key::q {
             return None;
@@ -82,6 +113,10 @@ fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
 }
 
 fn main() {
+    unsafe {
+        std::env::set_var("RUST_BACKTRACE", "1");
+    }
+
     let mut app = App::new();
 
     app.init = init;

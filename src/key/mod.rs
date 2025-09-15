@@ -1,3 +1,7 @@
+pub mod binds;
+
+use std::fmt::Display;
+
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Key {
     Null,
@@ -377,6 +381,16 @@ impl Key {
             Key::RBrace => Some('}'),
             Key::Tilde => Some('~'),
             Key::Del => Some('\x7F'),
+        }
+    }
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(c) = self.to_char() {
+            write!(f, "{}", c)
+        } else {
+            write!(f, "")
         }
     }
 }

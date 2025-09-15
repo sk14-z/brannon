@@ -5,7 +5,7 @@ use crate::{
     panel_shared,
     style::align::{AlignX, AlignY},
     unit::{Point, Unit},
-    widget::{attr::Attr, Widget},
+    widget::{Widget, attr::Attr},
 };
 
 pub struct Frame {
@@ -25,7 +25,7 @@ impl Frame {
         }
     }
 
-    pub fn render(&self) {
+    pub fn render(&mut self) {
         draw_frame(&self.attr);
 
         let (inner_x, inner_y) = self.bounds();

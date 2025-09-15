@@ -5,7 +5,7 @@ pub mod label;
 pub mod progress_bar;
 
 use crate::{
-    draw::{cursor, draw_arc_box, draw_binds, draw_box, draw_title},
+    draw::{cursor, draw_binds, draw_box, draw_title},
     panel::Panel,
     style::{line::Line, set_style},
     unit::Point,
@@ -51,7 +51,7 @@ pub trait Widget: Any {
         None
     }
 
-    fn render(&self, anchor: Point);
+    fn render(&mut self, anchor: Point);
 
     fn outline(&self, anchor: Point) {
         self.fill(anchor);
@@ -59,34 +59,29 @@ pub trait Widget: Any {
     }
 
     fn fill(&self, anchor: Point) {
-        // if self.style().fill != ColorBG::None {
-        set_style(self.style().fill);
         let h = self.style().height.calc();
         let s = " ".repeat(self.style().width.calc());
         let mut pos = anchor;
+
+        set_style(self.style().fill);
 
         for _ in 0..h {
             cursor::go(pos);
             printf!("{}", s);
             pos.y += 1.into();
         }
-        // }
     }
 
     fn border(&self, anchor: Point) {
-        if self.style().arc {
-            draw_arc_box(anchor, self.style());
-        } else {
-            draw_box(
-                anchor,
-                self.style(),
-                if self.style().selected {
-                    Line::Heavy
-                } else {
-                    Line::Light
-                },
-            );
-        }
+        draw_box(
+            anchor,
+            self.style(),
+            if self.style().selected {
+                Line::Heavy
+            } else {
+                Line::Light
+            },
+        );
 
         draw_title(anchor, self.style());
         draw_binds(anchor, self.style());

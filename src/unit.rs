@@ -31,10 +31,6 @@ impl Point {
             y: Unit::PctV(y),
         }
     }
-
-    pub fn pair(&self) -> (usize, usize) {
-        (self.x.calc(), self.y.calc())
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -50,19 +46,13 @@ impl Unit {
     pub fn calc(&self) -> usize {
         match self {
             Unit::Cor(n) => *n,
-            Unit::PctH(n) => {
-                if *n == 100 {
-                    get_tsz().0
-                } else {
-                    (((*n as f32) / 100.0) * (crate::app::get_tsz().0 as f32)) as usize
-                }
-            }
-            Unit::PctV(n) => (((*n as f32) / 100.0) * (crate::app::get_tsz().1 as f32)) as usize,
+            Unit::PctH(n) => (((*n as f32) / 100.0) * (get_tsz().0 as f32)) as usize,
+            Unit::PctV(n) => (((*n as f32) / 100.0) * (get_tsz().1 as f32)) as usize,
             Unit::PctHPO(n, o) => {
-                (((((*n as f32) / 100.0) * (crate::app::get_tsz().0 as f32)) as i16) + o) as usize
+                (((((*n as f32) / 100.0) * (get_tsz().0 as f32)) as i16) + o) as usize
             }
             Unit::PctVPO(n, o) => {
-                (((((*n as f32) / 100.0) * (crate::app::get_tsz().1 as f32)) as i16) + o) as usize
+                (((((*n as f32) / 100.0) * (get_tsz().1 as f32)) as i16) + o) as usize
             }
         }
     }
@@ -74,7 +64,7 @@ impl From<usize> for Unit {
     }
 }
 
-// Adding unlike types is not reccomended. Orientation of lhs takes precedence: H + V = H
+// Adding unlike orientations is not reccomended. Orientation of lhs takes precedence: H + V = H
 impl std::ops::Add for Unit {
     type Output = Unit;
 
