@@ -8,7 +8,7 @@ use crate::{
         set_style,
     },
     unit::{Point, Unit},
-    widget::{attr::Attr, Widget},
+    widget::{Widget, attr::Attr},
 };
 
 #[macro_export]
@@ -28,14 +28,26 @@ pub trait Panel {
     fn split(&self) -> (&Attr, &Vec<Box<dyn Widget>>);
     fn split_mut(&mut self) -> (&mut Attr, &mut Vec<Box<dyn Widget>>);
 
+    fn map_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
+        let (_, children) = self.split_mut();
+
+        for child in children.iter_mut() {
+            map(child);
+
+            if let Some(panel) = child.as_panel() {
+                panel.map_all(map);
+            }
+        }
+    }
+
     fn style_all(&mut self, map: fn(&mut Attr)) {
         let (_, children) = self.split_mut();
 
         for child in children.iter_mut() {
             map(child.style_mut());
 
-            if let Some(container) = child.as_panel() {
-                container.style_all(map);
+            if let Some(panel) = child.as_panel() {
+                panel.style_all(map);
             }
         }
     }
@@ -48,14 +60,20 @@ pub trait Panel {
                 return Some(child);
             }
 
-            if let Some(panel) = child.as_panel() {
-                if let Some(widget) = panel.get_child(tag) {
-                    return Some(widget);
-                }
+            if let Some(panel) = child.as_panel()
+                && let Some(widget) = panel.get_child(tag)
+            {
+                return Some(widget);
             }
         }
 
         None
+    }
+
+    fn child_at(&mut self, index: usize) -> Option<&mut Box<dyn Widget>> {
+        let (_, children) = self.split_mut();
+
+        children.get_mut(index)
     }
 
     fn add(&mut self, widget: Box<dyn Widget>) {
@@ -109,125 +127,126 @@ pub trait Panel {
 
     fn bounds(&self) -> (Unit, Unit) {
         let (attr, children) = self.split();
-        match attr.orientation {
-            Orientation::Horizontal => {
-                let inner_x = Unit::Cor(
-                    children
-                        .iter()
-                        .map(|c| {
-                            if !c.style().hide {
-                                c.style().total_width().calc()
-                            } else {
-                                0
-                            }
-                        })
-                        .sum(),
-                );
 
-                let inner_y = Unit::Cor(
-                    children
-                        .iter()
-                        .map(|c| {
-                            if !c.style().hide {
-                                c.style().total_height().calc()
-                            } else {
-                                0
-                            }
-                        })
-                        .max()
-                        .unwrap(),
-                );
+        if children.is_empty() {
+            (Unit::Cor(0), Unit::Cor(0))
+        } else {
+            match attr.orientation {
+                Orientation::Horizontal => {
+                    let inner_x = Unit::Cor(
+                        children
+                            .iter()
+                            .map(|c| {
+                                if !c.style().hide {
+                                    c.style().total_width().calc()
+                                } else {
+                                    0
+                                }
+                            })
+                            .sum(),
+                    );
 
-                (inner_x, inner_y)
-            }
-            Orientation::Vertical => {
-                let inner_x = Unit::Cor(
-                    children
-                        .iter()
-                        .map(|c| {
-                            if !c.style().hide {
-                                c.style().total_width().calc()
-                            } else {
-                                0
-                            }
-                        })
-                        .max()
-                        .unwrap(),
-                );
+                    let inner_y = Unit::Cor(
+                        children
+                            .iter()
+                            .map(|c| {
+                                if !c.style().hide {
+                                    c.style().total_height().calc()
+                                } else {
+                                    0
+                                }
+                            })
+                            .max()
+                            .unwrap(),
+                    );
 
-                let inner_y = Unit::Cor(
-                    children
-                        .iter()
-                        .map(|c| {
-                            if !c.style().hide {
-                                c.style().total_height().calc()
-                            } else {
-                                0
-                            }
-                        })
-                        .sum(),
-                );
+                    (inner_x, inner_y)
+                }
+                Orientation::Vertical => {
+                    let inner_x = Unit::Cor(
+                        children
+                            .iter()
+                            .map(|c| {
+                                if !c.style().hide {
+                                    c.style().total_width().calc()
+                                } else {
+                                    0
+                                }
+                            })
+                            .max()
+                            .unwrap(),
+                    );
 
-                (inner_x, inner_y)
+                    let inner_y = Unit::Cor(
+                        children
+                            .iter()
+                            .map(|c| {
+                                if !c.style().hide {
+                                    c.style().total_height().calc()
+                                } else {
+                                    0
+                                }
+                            })
+                            .sum(),
+                    );
+
+                    (inner_x, inner_y)
+                }
             }
         }
     }
 
-    fn render_children(&self, anchor: Point) -> Vec<(Unit, Unit, Unit)> {
-        let (attr, children) = self.split();
-        let mut positions = Vec::new();
+    fn render_children(&mut self, anchor: Point) {
+        let (inner_x, inner_y) = self.bounds();
+        let (attr, children) = self.split_mut();
+        let mut pos = anchor;
 
-        if !children.is_empty() {
-            let (inner_x, inner_y) = self.bounds();
-            let mut pos = anchor;
+        for child in children {
+            if !child.style().hide {
+                match attr.orientation {
+                    Orientation::Horizontal => {
+                        pos.y += match attr.aligny {
+                            AlignY::Top => child.style().padding_top,
+                            AlignY::Center => {
+                                Unit::Cor((inner_y.calc() / 2) - (child.style().height.calc() / 2))
+                                // Unit::Cor((inner_y - child.style().height).calc() / 2)
+                                // Unit::Cor(0)
+                            }
+                            AlignY::Bottom => inner_y - child.style().total_height(),
+                        };
+                        pos.x += child.style().padding_left;
 
-            for child in children {
-                if !child.style().hide {
-                    match attr.orientation {
-                        Orientation::Horizontal => {
-                            pos.y += match attr.aligny {
-                                AlignY::Top => child.style().padding_top,
-                                AlignY::Center => {
-                                    Unit::Cor((inner_y - child.style().height).calc() / 2)
-                                }
-                                AlignY::Bottom => inner_y - child.style().total_height(),
-                            };
-                            pos.x += child.style().padding_left;
+                        child.outline(pos);
 
-                            child.outline(pos);
-                            set_style(child.style().fill);
-                            child.render(pos);
-                            style::reset();
+                        set_style(child.style().fill);
+                        child.render(pos);
 
-                            positions.push((pos.x, child.style().width, child.style().height));
+                        pos.y = anchor.y;
+                        pos.x += child.style().width + child.style().padding_right
+                    }
+                    Orientation::Vertical => {
+                        pos.x += match attr.alignx {
+                            AlignX::Left => child.style().padding_left,
+                            AlignX::Center => {
+                                Unit::Cor((inner_x.calc() / 2) - (child.style().width.calc() / 2))
+                            }
+                            AlignX::Right => inner_x - child.style().total_width(),
+                        };
+                        pos.y += child.style().padding_top;
 
-                            pos.y = anchor.y;
-                            pos.x += child.style().width + child.style().padding_right
-                        }
-                        Orientation::Vertical => {
-                            pos.x += match attr.alignx {
-                                AlignX::Left => child.style().padding_left,
-                                AlignX::Center => {
-                                    Unit::Cor((inner_x - child.style().width).calc() / 2)
-                                }
-                                AlignX::Right => inner_x - child.style().total_width(),
-                            };
-                            pos.y += child.style().padding_top;
+                        child.outline(pos);
 
-                            child.outline(pos);
-                            set_style(child.style().fill);
-                            child.render(pos);
-                            style::reset();
+                        set_style(child.style().fill);
+                        child.render(pos);
 
-                            pos.x = anchor.x;
-                            pos.y += child.style().height + child.style().padding_bottom
-                        }
+                        pos.x = anchor.x;
+                        pos.y += child.style().height + child.style().padding_bottom
                     }
                 }
+
+                style::reset();
             }
         }
-
-        positions
     }
 
     fn flex(&mut self) {
@@ -252,32 +271,4 @@ pub trait Panel {
             }
         }
     }
-
-    // If too small, adjust to fit children
-    // fn expand(&mut self) {
-    //     let (inner_x, inner_y) = self.bounds();
-    //     let (attr, _) = self.split_mut();
-    //
-    //     if inner_x.calc() >= attr.width.calc() {
-    //         attr.width = inner_x + Unit::Cor(2);
-    //     }
-    //
-    //     if inner_y.calc() >= attr.height.calc() {
-    //         attr.height = inner_y + Unit::Cor(2);
-    //     }
-    // }
-    //
-    // // If too big, adjust to fit children
-    // fn shrink(&mut self) {
-    //     let (inner_x, inner_y) = self.bounds();
-    //     let (attr, _) = self.split_mut();
-    //
-    //     if inner_x.calc() <= attr.width.calc() {
-    //         attr.width = inner_x + Unit::Cor(2);
-    //     }
-    //
-    //     if inner_y.calc() <= attr.height.calc() {
-    //         attr.height = inner_y + Unit::Cor(2);
-    //     }
-    // }
 }

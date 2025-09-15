@@ -4,23 +4,23 @@ mod terminal;
 use crate::{
     draw::{cursor, draw_frame},
     key::Key,
-    panel::{frame::Frame, Panel},
+    panel::{Panel, frame::Frame},
     style::{
         self,
         color::{Color, ColorBG},
         set_style,
     },
     theme::Theme,
-    widget::{attr::Attr, Widget},
+    widget::{Widget, attr::Attr},
 };
 use cache::*;
-use libc::{sighandler_t, signal, SIGINT};
+use libc::{SIGINT, sighandler_t, signal};
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
     time::Instant,
 };
-use terminal::{termsz, Terminal};
+use terminal::{Terminal, termsz};
 
 extern "C" fn handle_sigint(_: i32) {}
 
@@ -54,7 +54,7 @@ impl App {
             theme: Theme::new(),
             show_cursor: false,
             no_interrupt: true,
-            refresh_rate: 60,
+            refresh_rate: 30,
             init: |_| {},
             run: |_, _| Some(0),
             end: |_| {},
@@ -81,14 +81,13 @@ impl App {
 
         (self.init)(self);
 
-        let mut frame_changed = true;
-
         loop {
             let time = Instant::now();
 
             if dim != termsz() {
                 // resize everything
                 dim = termsz();
+                self.has_changed = true;
             }
 
             if let Some(c) = terminal::getch() {
@@ -116,7 +115,7 @@ impl App {
             cursor::home();
 
             self.frame.render();
-            // self.has_changed = false;
+            self.has_changed = false;
             // }
 
             style::reset();
@@ -166,11 +165,11 @@ impl App {
         for child in children.iter_mut() {
             if child.style().tag == tag {
                 child.style_mut().hide = true;
-            } else if let Some(panel) = child.as_panel() {
-                if let Some(widget) = panel.get_child(tag) {
-                    widget.style_mut().hide = true;
-                    panel.flex();
-                }
+            } else if let Some(panel) = child.as_panel()
+                && let Some(widget) = panel.get_child(tag)
+            {
+                widget.style_mut().hide = true;
+                panel.flex();
             }
         }
     }
@@ -183,11 +182,11 @@ impl App {
         for child in children.iter_mut() {
             if child.style().tag == tag {
                 child.style_mut().hide = false;
-            } else if let Some(panel) = child.as_panel() {
-                if let Some(widget) = panel.get_child(tag) {
-                    widget.style_mut().hide = false;
-                    panel.flex();
-                }
+            } else if let Some(panel) = child.as_panel()
+                && let Some(widget) = panel.get_child(tag)
+            {
+                widget.style_mut().hide = false;
+                panel.flex();
             }
         }
     }
@@ -200,13 +199,18 @@ impl App {
         for child in children.iter_mut() {
             if child.style().tag == tag {
                 child.style_mut().hide = !child.style().hide;
-            } else if let Some(panel) = child.as_panel() {
-                if let Some(widget) = panel.get_child(tag) {
-                    widget.style_mut().hide = !widget.style().hide;
-                    panel.flex();
-                }
+            } else if let Some(panel) = child.as_panel()
+                && let Some(widget) = panel.get_child(tag)
+            {
+                widget.style_mut().hide = !widget.style().hide;
+                panel.flex();
             }
         }
+    }
+
+    pub fn map_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
+        self.has_changed = true;
+        self.frame.map_all(map);
     }
 
     pub fn style_all(&mut self, map: fn(&mut Attr)) {

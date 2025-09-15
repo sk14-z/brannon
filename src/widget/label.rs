@@ -1,4 +1,4 @@
-use super::{attr::Attr, Widget};
+use super::{Widget, attr::Attr};
 use crate::{
     draw::cursor,
     style::{
@@ -18,10 +18,9 @@ pub struct Label {
 impl Widget for Label {
     widget_shared!();
 
-    fn render(&self, anchor: Point) {
+    fn render(&mut self, anchor: Point) {
         set_style(self.attr.text_style);
         set_style(self.attr.text_color);
-        set_style(self.attr.fill);
 
         let mut lines: Vec<String> = self
             .text

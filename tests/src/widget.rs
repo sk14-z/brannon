@@ -2,7 +2,7 @@ use brannon::{
     draw::cursor,
     printf,
     unit::Point,
-    widget::{attr::Attr, Widget},
+    widget::{Widget, attr::Attr},
     widget_shared,
 };
 use std::any::Any;
@@ -14,7 +14,7 @@ pub struct MyWidget {
 impl Widget for MyWidget {
     widget_shared!();
 
-    fn render(&self, anchor: Point) {
+    fn render(&mut self, anchor: Point) {
         cursor::go(Point::from(anchor, 1, 1));
         printf!("I made a custom widget :)");
         self.border(anchor);
