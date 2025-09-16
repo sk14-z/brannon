@@ -2,9 +2,10 @@ mod cache;
 mod terminal;
 
 use crate::{
-    draw::{cursor, draw_frame},
+    draw::cursor,
     key::Key,
     panel::{Panel, frame::Frame},
+    scene::{DefaultScene, SceneHandler, SceneKey, SceneKeyT},
     style::{
         self,
         color::{Color, ColorBG},
@@ -25,7 +26,7 @@ use terminal::{Terminal, termsz};
 extern "C" fn handle_sigint(_: i32) {}
 
 pub struct App {
-    pub frame: Frame,
+    scenes: SceneHandler,
     term: Terminal,
     has_changed: bool,
     // Properties
@@ -47,8 +48,11 @@ pub(crate) fn get_tsz() -> (usize, usize) {
 
 impl App {
     pub fn new() -> App {
+        let mut scenes = SceneHandler::new();
+        scenes.create_scene(DefaultScene, Frame::new(None));
+
         Self {
-            frame: Frame::new(),
+            scenes,
             term: Terminal::initialize(),
             has_changed: true,
             theme: Theme::new(),
@@ -87,7 +91,7 @@ impl App {
             if dim != termsz() {
                 // resize everything
                 dim = termsz();
-                self.has_changed = true;
+                // self.has_changed = true;
             }
 
             if let Some(c) = terminal::getch() {
@@ -109,12 +113,12 @@ impl App {
             }
 
             // if self.has_changed {
-            set_style(self.frame.attr.fill);
+            set_style(self.frame().attr.fill);
 
             terminal::clear();
             cursor::home();
 
-            self.frame.render();
+            self.frame().render();
             self.has_changed = false;
             // }
 
@@ -141,13 +145,39 @@ impl App {
             .unwrap()
     }
 
+    pub fn create_scene<T: SceneKeyT>(&mut self, key: T, frame: Frame) {
+        self.scenes.create_scene(key, frame);
+    }
+
+    pub fn remove_scene<T: SceneKeyT>(&mut self, key: T) -> Option<Frame> {
+        if let Some(scene) = self.scenes.remove_scene(key) {
+            Some(scene.frame)
+        } else {
+            None
+        }
+    }
+
+    pub fn change_scene<T: SceneKeyT>(&mut self, key: &mut T) {
+        self.scenes.change_scene(key);
+        self.has_changed = true;
+    }
+
+    pub fn frame(&mut self) -> &mut Frame {
+        &mut self.scenes.current().frame
+    }
+
+    pub fn current_scene_key<T: SceneKey>(&mut self) -> Option<&T> {
+        self.scenes.current().key.as_any().downcast_ref::<T>()
+    }
+
     pub fn get_widget<T>(&mut self, tag: &str) -> Option<&mut T>
     where
         T: Widget + 'static,
     {
-        if let Some(widget) = self.frame.get_child(tag) {
+        self.has_changed = true;
+
+        if let Some(widget) = self.frame().get_child(tag) {
             if let Some(widget) = widget.as_any_mut().downcast_mut::<T>() {
-                self.has_changed = true;
                 Some(widget)
             } else {
                 None
@@ -160,7 +190,7 @@ impl App {
     pub fn hide_widget(&mut self, tag: &str) {
         self.has_changed = true;
 
-        let (_, children) = self.frame.split_mut();
+        let (_, children) = self.frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -177,7 +207,7 @@ impl App {
     pub fn show_widget(&mut self, tag: &str) {
         self.has_changed = true;
 
-        let (_, children) = self.frame.split_mut();
+        let (_, children) = self.frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -191,10 +221,10 @@ impl App {
         }
     }
 
-    pub fn toggle_widget(&mut self, tag: &str) {
+    pub fn toggle_visiblity_of(&mut self, tag: &str) {
         self.has_changed = true;
 
-        let (_, children) = self.frame.split_mut();
+        let (_, children) = self.frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -210,12 +240,14 @@ impl App {
 
     pub fn map_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
         self.has_changed = true;
-        self.frame.map_all(map);
+
+        self.frame().map_all(map);
     }
 
     pub fn style_all(&mut self, map: fn(&mut Attr)) {
         self.has_changed = true;
-        self.frame.style_all(map);
+
+        self.frame().style_all(map);
     }
 
     pub fn fg(&self) -> Color {

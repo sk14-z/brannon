@@ -15,6 +15,7 @@ pub struct Attr {
     pub hide: bool,
 
     pub(crate) tag: String,
+    pub(crate) should_fill: bool,
     pub(crate) selected: bool,
 
     pub flex: bool,
@@ -63,6 +64,7 @@ impl Attr {
         Attr {
             hide: false,
             tag: String::new(),
+            should_fill: false,
             selected: false,
             flex: false,
             orientation: Orientation::Vertical,
@@ -90,12 +92,20 @@ impl Attr {
         }
     }
 
-    pub fn hidden(&mut self) -> bool {
-        self.hide
+    pub fn with(attr: &Attr) -> Attr {
+        attr.clone()
+    }
+
+    pub fn from(attr: &Attr) -> Option<Attr> {
+        Some(attr.clone())
     }
 
     pub fn wrap(&mut self) -> Option<Attr> {
         Some(self.to_owned())
+    }
+
+    pub fn hidden(&mut self) -> bool {
+        self.hide
     }
 
     pub fn tag(&mut self, value: impl Into<String>) -> &mut Attr {
@@ -303,6 +313,21 @@ impl Attr {
 
     pub fn text_style(&mut self, value: TextStyle) -> &mut Attr {
         self.text_style = value;
+        self
+    }
+
+    pub fn bold(&mut self) -> &mut Attr {
+        self.text_style = TextStyle::Bold;
+        self
+    }
+
+    pub fn italic(&mut self) -> &mut Attr {
+        self.text_style = TextStyle::Italic;
+        self
+    }
+
+    pub fn underline(&mut self) -> &mut Attr {
+        self.text_style = TextStyle::Underline;
         self
     }
 

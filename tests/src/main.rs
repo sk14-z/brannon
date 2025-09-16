@@ -1,112 +1,126 @@
-mod widget;
+// mod widget;
+
+use std::any::Any;
 
 use brannon::{
     app::App,
-    key::{Key, binds::KeyBinds},
-    log::Logger,
-    panel::Panel,
+    input::{binds::KeyBinds, key::Key},
+    make_scene_key,
+    panel::{Panel, frame::Frame},
     printf,
+    scene::SceneKey,
     style::{
-        align::{AlignX, AlignY},
         color::{Color, ColorBG},
-        orientation::Orientation,
         text::TextStyle,
     },
-    unit::Unit,
-    widget::{Widget, attr::Attr, container::Container, label::Label, progress_bar::ProgressBar},
+    widget::{attr::Attr, label::Label},
 };
 
-use widget::MyWidget;
+// use widget::MyWidget;
+
+#[derive(Clone, Copy, PartialEq)]
+enum MyScenes {
+    Scene1,
+    Scene2,
+}
+
+make_scene_key!(MyScenes);
 
 fn init(app: &mut App) {
-    app.frame.attr.center().title("Brannon");
+    let label_style = Attr::new().size(30, 5).fg(Color::Black).center().to_owned();
 
-    let mut label_style = Attr::new().size(30, 5).pad(1).center().clone();
+    app.create_scene(MyScenes::Scene1, {
+        let mut frame = Frame::new(
+            Attr::new()
+                .center_all()
+                .title("Welcome")
+                .fg(Color::Black)
+                .fill(ColorBG::White)
+                .binds(KeyBinds::new().bind(Key::Enter, "Continue"))
+                .wrap(),
+        );
 
-    let mine = MyWidget::new(label_style.tag("mine").wrap());
+        let welcome = Label::new(
+            String::from("Welcome to Brannon!"),
+            Attr::with(&label_style)
+                .tag("welcome")
+                .fg(Color::Blue)
+                .bold()
+                .wrap(),
+        );
 
-    let label = Label::new(String::from("Press c dummy"), label_style.tag("la").wrap());
+        let info = Label::new(
+            String::from("Press Enter..."),
+            Attr::with(&label_style).text_style(TextStyle::Dim).wrap(),
+        );
 
-    let l1 = ProgressBar::new(
-        ColorBG::Cyan,
-        label_style.clone().tag("11").width(75).wrap(),
-    );
+        frame.addm(vec![welcome, info]);
 
-    let l2 = Label::new(
-        format!("{}", l1.attr.height.calc()),
-        label_style.tag("l2").wrap(),
-    );
+        frame.style_all(|a| {
+            a.fill(ColorBG::White);
+        });
 
-    let hidden = Label::new(
-        String::from("This isn't hidden"),
-        label_style.tag("target").wrap(),
-    );
+        frame
+    });
 
-    let gd = Label::new(
-        String::from("0"),
-        Attr::new()
-            // label_style
-            .tag("gd")
-            // .size(15, 5)
-            .size(Unit::Cor(15), Unit::PctV(30))
-            .center()
-            .fg(Color::Red)
-            .wrap(),
-    );
+    app.create_scene(MyScenes::Scene2, {
+        let mut frame = Frame::new(
+            Attr::new()
+                .centery()
+                .title("Content")
+                .fg(Color::Black)
+                .fill(ColorBG::Red)
+                .binds(KeyBinds::new().bind(Key::h, "Toggle that loudmouth"))
+                .wrap(),
+        );
 
-    let mut c1 = Container::new(
-        Attr::new()
-            .tag("c1")
-            .fill(ColorBG::Green)
-            .horizontal()
-            .centery()
-            .flex()
-            .wrap(),
-    );
-    c1.addm(vec![l1, mine, label]);
+        let info2 = Label::new(
+            String::from("This is the second scene!"),
+            Attr::from(&label_style),
+        );
 
-    let mut c2 = Container::new(
-        Attr::new()
-            .tag("c2")
-            .horizontal()
-            .flex()
-            .center_all()
-            .binds(
-                KeyBinds::new()
-                    .bind(Key::C, "Hide")
-                    .bind(Key::I, "Inc")
-                    .bind(Key::D, "Dec"),
-            )
-            .wrap(),
-    );
+        let to_be_hidden = Label::new(
+            String::from("Do it! I'm not scared. You can't get rid of me."),
+            Attr::with(&label_style)
+                .fill(ColorBG::Red)
+                .tag("target")
+                .wrap(),
+        );
 
-    c2.addm(vec![l2, hidden, gd]);
+        frame.addm(vec![info2, to_be_hidden]);
 
-    app.frame.addm(vec![c1, c2]);
+        frame.style_all(|a| {
+            a.fill(ColorBG::Cyan);
+            a.hide_border();
+        });
 
-    // app.map_all(|w| {
-    //     if w.as_panel().is_none() && w.style().fill == ColorBG::None {
-    //         w.style_mut().fill = ColorBG::Blue;
-    //     }
-    // });
+        frame
+    });
+
+    app.change_scene(&mut MyScenes::Scene1);
 }
 
 fn run(app: &mut App, input: Option<Key>) -> Option<usize> {
-    let c = app.get_widget::<Container>("c2")?;
-    let s = format!("{} {}", c.bounds().1.calc(), c.attr.height.calc());
-    let l = app.get_widget::<Label>("gd")?;
-    l.text = format!("inner/outer: {}, h: {}", s, l.attr.height.calc());
-
     if let Some(key) = input {
         if key == Key::q {
             return None;
-        } else if key == Key::c {
-            app.toggle_widget("target");
-        } else if key == Key::i {
-            app.get_widget::<ProgressBar>("11")?.inc_progress(10);
-        } else if key == Key::d {
-            app.get_widget::<ProgressBar>("11")?.dec_progress(10);
+        } else {
+            app.get_widget::<Label>("welcome")?.text = format!("{}", key);
+            printf!("Key")
         }
+
+        // match app.current_scene_key()? {
+        //     MyScenes::Scene1 => {
+        //         if key == Key::LF {
+        //             app.change_scene(&mut MyScenes::Scene2);
+        //         }
+        //     }
+        //     MyScenes::Scene2 => {
+        //         if key == Key::h {
+        //             app.toggle_visiblity_of("target");
+        //         }
+        //     }
+        // }
     }
 
     Some(0)
@@ -122,4 +136,7 @@ fn main() {
     app.init = init;
     app.run = run;
     app.start();
+    // brannon::event::arg::test_some_shit();
+    // printf!("\x1b]2;Yo\u{7}");
+    // std::thread::sleep(Duration::from_secs(5))
 }
