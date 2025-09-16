@@ -7,7 +7,7 @@ pub mod progress_bar;
 use crate::{
     draw::{cursor, draw_binds, draw_box, draw_title},
     panel::Panel,
-    style::{line::Line, set_style},
+    style::{line::Line, set_style, text::TextStyle},
     unit::Point,
 };
 use attr::Attr;
@@ -59,20 +59,25 @@ pub trait Widget: Any {
     }
 
     fn fill(&self, anchor: Point) {
-        let h = self.style().height.calc();
-        let s = " ".repeat(self.style().width.calc());
-        let mut pos = anchor;
+        if self.style().should_fill {
+            let h = self.style().height.calc();
+            let s = " ".repeat(self.style().width.calc());
+            let mut pos = anchor;
 
-        set_style(self.style().fill);
+            set_style(self.style().fill);
 
-        for _ in 0..h {
-            cursor::go(pos);
-            printf!("{}", s);
-            pos.y += 1.into();
+            for _ in 0..h {
+                cursor::go(pos);
+                printf!("{}", s);
+                pos.y += 1.into();
+            }
         }
     }
 
     fn border(&self, anchor: Point) {
+        set_style(self.style().border_color);
+        set_style(self.style().border_fill);
+
         draw_box(
             anchor,
             self.style(),
@@ -82,6 +87,8 @@ pub trait Widget: Any {
                 Line::Light
             },
         );
+
+        set_style(TextStyle::Bold);
 
         draw_title(anchor, self.style());
         draw_binds(anchor, self.style());
