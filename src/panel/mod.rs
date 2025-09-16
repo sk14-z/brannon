@@ -1,4 +1,4 @@
-pub(crate) mod frame;
+pub mod frame;
 
 use crate::{
     style::{
@@ -209,12 +209,15 @@ pub trait Panel {
                             AlignY::Top => child.style().padding_top,
                             AlignY::Center => {
                                 Unit::Cor((inner_y.calc() / 2) - (child.style().height.calc() / 2))
-                                // Unit::Cor((inner_y - child.style().height).calc() / 2)
-                                // Unit::Cor(0)
                             }
                             AlignY::Bottom => inner_y - child.style().total_height(),
                         };
                         pos.x += child.style().padding_left;
+
+                        let fill = child.style().fill;
+                        if fill != attr.fill {
+                            child.style_mut().should_fill = true;
+                        }
 
                         child.outline(pos);
 
@@ -233,6 +236,11 @@ pub trait Panel {
                             AlignX::Right => inner_x - child.style().total_width(),
                         };
                         pos.y += child.style().padding_top;
+
+                        let fill = child.style().fill;
+                        if fill != attr.fill {
+                            child.style_mut().should_fill = true;
+                        }
 
                         child.outline(pos);
 

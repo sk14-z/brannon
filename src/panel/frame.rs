@@ -18,9 +18,9 @@ impl Panel for Frame {
 }
 
 impl Frame {
-    pub(crate) fn new() -> Frame {
+    pub fn new(attr: Option<Attr>) -> Frame {
         Frame {
-            attr: Attr::new(),
+            attr: attr.unwrap_or_default(),
             children: vec![],
         }
     }

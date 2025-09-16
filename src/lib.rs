@@ -21,6 +21,7 @@ pub mod draw;
 pub mod key;
 pub mod log;
 pub mod panel;
+pub mod scene;
 pub mod style;
 pub mod theme;
 pub mod unit;
