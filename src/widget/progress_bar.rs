@@ -1,44 +1,17 @@
-use super::{Widget, attr::Attr};
 use crate::{
     draw::cursor,
-    style::{self, color::ColorBG, set_style},
+    impl_widget_base, printf,
+    style::{color::ColorBG, set_style},
     unit::{Point, Unit},
-    widget_shared,
+    widget::{Widget, attr::Attr},
 };
 use std::any::Any;
 
+#[derive(Clone, PartialEq)]
 pub struct ProgressBar {
     pub attr: Attr,
     progress: usize,
     bar_color: ColorBG,
-}
-
-impl Widget for ProgressBar {
-    widget_shared!();
-
-    fn render(&mut self, anchor: Point) {
-        set_style(self.bar_color);
-
-        let mut pos = Point::from(anchor, Unit::Cor(1), Unit::Cor(1));
-        cursor::go(pos);
-        printf!(
-            "{}",
-            " ".repeat(
-                (((self.progress as f32) / 100.0) * ((self.attr.width.calc() - 2) as f32)) as usize
-            )
-        );
-
-        set_style(self.attr.text_color);
-        set_style(self.attr.text_style);
-
-        if self.progress < 53 {
-            set_style(self.attr.fill);
-        }
-
-        pos.x += Unit::Cor(self.attr.width.calc() / 2);
-        cursor::go(pos);
-        printf!("{}%", self.progress);
-    }
 }
 
 impl ProgressBar {
@@ -93,5 +66,33 @@ impl ProgressBar {
 
     pub fn bar_color(&mut self, value: ColorBG) {
         self.bar_color = value;
+    }
+}
+
+impl_widget_base!(ProgressBar);
+
+impl Widget for ProgressBar {
+    fn render(&mut self, anchor: Point) {
+        set_style(self.bar_color);
+
+        let mut pos = Point::from(anchor, Unit::Cor(1), Unit::Cor(1));
+        cursor::go(pos);
+        printf!(
+            "{}",
+            " ".repeat(
+                (((self.progress as f32) / 100.0) * ((self.attr.width.calc() - 2) as f32)) as usize
+            )
+        );
+
+        set_style(self.attr.text_color);
+        set_style(self.attr.text_style);
+
+        if self.progress < 53 {
+            set_style(self.attr.fill);
+        }
+
+        pos.x += Unit::Cor(self.attr.width.calc() / 2);
+        cursor::go(pos);
+        printf!("{}%", self.progress);
     }
 }

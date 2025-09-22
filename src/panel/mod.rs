@@ -11,19 +11,6 @@ use crate::{
     widget::{Widget, attr::Attr},
 };
 
-#[macro_export]
-macro_rules! panel_shared {
-    () => {
-        fn split(&self) -> (&Attr, &Vec<Box<dyn Widget>>) {
-            (&self.attr, &self.children)
-        }
-
-        fn split_mut(&mut self) -> (&mut Attr, &mut Vec<Box<dyn Widget>>) {
-            (&mut self.attr, &mut self.children)
-        }
-    };
-}
-
 pub trait Panel {
     fn split(&self) -> (&Attr, &Vec<Box<dyn Widget>>);
     fn split_mut(&mut self) -> (&mut Attr, &mut Vec<Box<dyn Widget>>);

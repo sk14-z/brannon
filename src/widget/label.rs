@@ -1,23 +1,33 @@
-use super::{Widget, attr::Attr};
 use crate::{
     draw::cursor,
+    impl_widget_base, printf,
     style::{
         align::{AlignX, AlignY},
         set_style,
     },
     unit::{Point, Unit},
-    widget_shared,
+    widget::{Widget, attr::Attr},
 };
 use std::any::Any;
 
+#[derive(Clone, PartialEq)]
 pub struct Label {
     pub attr: Attr,
     pub text: String,
 }
 
-impl Widget for Label {
-    widget_shared!();
+impl Label {
+    pub fn new(text: impl Into<String>, attr: Option<Attr>) -> Box<Label> {
+        Box::new(Label {
+            attr: attr.unwrap_or_default(),
+            text: text.into(),
+        })
+    }
+}
 
+impl_widget_base!(Label);
+
+impl Widget for Label {
     fn render(&mut self, anchor: Point) {
         set_style(self.attr.text_style);
         set_style(self.attr.text_color);
@@ -53,14 +63,5 @@ impl Widget for Label {
             printf!("{}", line);
             pos.y += Unit::Cor(1);
         }
-    }
-}
-
-impl Label {
-    pub fn new(text: String, attr: Option<Attr>) -> Box<Label> {
-        Box::new(Label {
-            attr: attr.unwrap_or_default(),
-            text,
-        })
     }
 }

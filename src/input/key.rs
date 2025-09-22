@@ -1,42 +1,36 @@
-pub mod binds;
-
 use std::fmt::Display;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
+pub enum KeyState {
+    Press,
+    Release,
+    Repeat,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Key {
-    Null,
-    SOH,        // Start of Heading
-    STX,        // Start of Text
-    ETX,        // End of Text
-    EOT,        // End of Transmission
-    ENQ,        // Enquiry
-    ACK,        // Acknowledgement
-    BEL,        // Bell
-    BS,         // Backspace
-    HT,         // Horizontal Tab
-    LF,         // Line Feed
-    VT,         // Vertical Tab
-    FF,         // Form Feed
-    CR,         // Carriage Return
-    SO,         // Shift Out
-    SI,         // Shift In
-    DLE,        // Data Link Escape
-    DC1,        // Device Control 1
-    DC2,        // Device Control 2
-    DC3,        // Device Control 3
-    DC4,        // Device Control 4
-    NAK,        // Negative Acknowledgement
-    SYN,        // Synchronous Idle
-    ETB,        // End of Transmission Block
-    CAN,        // Cancel
-    EM,         // End of Medium
-    SUB,        // Substitute
-    ESC,        // Escape
-    FS,         // File Separator
-    GS,         // Group Separator
-    RS,         // Record Separator
-    US,         // Unit Separator
-    Space,      // Space
+    // F(n) is sent as \x1b[n~ where n = [11..=15, 17..=21, 23..=24]
+    // F1-F4 can also be sent as \x1bOP, \x1bOQ, \x1bOR, \x1bOS
+    Function(usize),
+    // Sent as escape sequences
+    Up,       // \x1b[A or \x1bOA
+    Down,     // \x1b[B or \x1bOB
+    Right,    // \x1b[C or \x1bOC
+    Left,     // \x1b[D or \x1bOD
+    Home,     // \x1b[1~ or \x1b[H or \x1bOH
+    Insert,   // \x1b[2~
+    Delete,   // \x1b[3~
+    End,      // \x1b[4~ or \x1b[F or \x1bOF
+    PageUp,   // \x1b[5~
+    PageDown, // \x1b[6~
+
+    // Sent as single characters
+    Escape,     // '\x1b'
+    Backspace,  // '\x08' or '\x7f'
+    Tab,        // '\t'
+    Enter,      // '\n' or '\r'
+    Space,      // ' '
     Excl,       // '!'
     DblQuote,   // '"'
     Hash,       // '#'
@@ -64,9 +58,9 @@ pub enum Key {
     D9,         // '9'
     Colon,      // ':'
     Semicolon,  // ';'
-    Lt,         // '<'
-    Eq,         // '='
-    Gt,         // '>'
+    LThan,      // '<'
+    Equals,     // '='
+    GThan,      // '>'
     QMark,      // '?'
     At,         // '@'
     A,          // 'A'
@@ -128,29 +122,18 @@ pub enum Key {
     y,          // 'y'
     z,          // 'z'
     LBrace,     // '{'
-    VBar,       // '|'
+    Bar,        // '|'
     RBrace,     // '}'
     Tilde,      // '~'
-    Del,        // '\x7F'
 }
 
 impl Key {
-    pub fn new(c: char) -> Option<Self> {
+    pub fn from_char(c: char) -> Option<Self> {
         match c {
-            '\0' => None,
-            '\x01' => Some(Key::SOH),
-            '\x02' => Some(Key::STX),
-            '\x03' => Some(Key::ETX),
-            '\x04' => Some(Key::EOT),
-            '\x05' => Some(Key::ENQ),
-            '\x06' => Some(Key::ACK),
-            '\x07' => Some(Key::BEL),
-            '\x08' => Some(Key::BS),
-            '\t' => Some(Key::HT),
-            '\n' => Some(Key::LF),
-            '\x0B' => Some(Key::VT),
-            '\x0C' => Some(Key::FF),
-            '\r' => Some(Key::CR),
+            '\x1B' => Some(Key::Escape),
+            '\x7f' | '\x08' => Some(Key::Backspace),
+            '\t' => Some(Key::Tab),
+            '\n' | '\r' => Some(Key::Enter),
             ' ' => Some(Key::Space),
             '!' => Some(Key::Excl),
             '"' => Some(Key::DblQuote),
@@ -179,11 +162,11 @@ impl Key {
             '9' => Some(Key::D9),
             ':' => Some(Key::Colon),
             ';' => Some(Key::Semicolon),
-            '<' => Some(Key::Lt),
-            '=' => Some(Key::Eq),
-            '>' => Some(Key::Gt),
+            '<' => Some(Key::LThan),
+            '=' => Some(Key::Equals),
+            '>' => Some(Key::GThan),
             '?' => Some(Key::QMark),
-            '@' => Some(Key::t),
+            '@' => Some(Key::At),
             'A' => Some(Key::A),
             'B' => Some(Key::B),
             'C' => Some(Key::C),
@@ -243,48 +226,19 @@ impl Key {
             'y' => Some(Key::y),
             'z' => Some(Key::z),
             '{' => Some(Key::LBrace),
-            '|' => Some(Key::VBar),
+            '|' => Some(Key::Bar),
             '}' => Some(Key::RBrace),
             '~' => Some(Key::Tilde),
-            '\x7F' => Some(Key::Del),
             _ => None,
         }
     }
 
     pub fn to_char(&self) -> Option<char> {
         match self {
-            Key::Null => None,
-            Key::SOH => Some('\x01'),
-            Key::STX => Some('\x02'),
-            Key::ETX => Some('\x03'),
-            Key::EOT => Some('\x04'),
-            Key::ENQ => Some('\x05'),
-            Key::ACK => Some('\x06'),
-            Key::BEL => Some('\x07'),
-            Key::BS => Some('\x08'),
-            Key::HT => Some('\t'),
-            Key::LF => Some('\n'),
-            Key::VT => Some('\x0B'),
-            Key::FF => Some('\x0C'),
-            Key::CR => Some('\r'),
-            Key::SO => None,
-            Key::SI => None,
-            Key::DLE => None,
-            Key::DC1 => None,
-            Key::DC2 => None,
-            Key::DC3 => None,
-            Key::DC4 => None,
-            Key::NAK => None,
-            Key::SYN => None,
-            Key::ETB => None,
-            Key::CAN => None,
-            Key::EM => None,
-            Key::SUB => None,
-            Key::ESC => Some('\x1B'),
-            Key::FS => None,
-            Key::GS => None,
-            Key::RS => None,
-            Key::US => None,
+            Key::Escape => Some('\x1B'),
+            Key::Backspace => Some('\x08'),
+            Key::Tab => Some('\t'),
+            Key::Enter => Some('\n'),
             Key::Space => Some(' '),
             Key::Excl => Some('!'),
             Key::DblQuote => Some('"'),
@@ -313,9 +267,9 @@ impl Key {
             Key::D9 => Some('9'),
             Key::Colon => Some(':'),
             Key::Semicolon => Some(';'),
-            Key::Lt => Some('<'),
-            Key::Eq => Some('='),
-            Key::Gt => Some('>'),
+            Key::LThan => Some('<'),
+            Key::Equals => Some('='),
+            Key::GThan => Some('>'),
             Key::QMark => Some('?'),
             Key::At => Some('@'),
             Key::A => Some('A'),
@@ -377,22 +331,67 @@ impl Key {
             Key::y => Some('y'),
             Key::z => Some('z'),
             Key::LBrace => Some('{'),
-            Key::VBar => Some('|'),
+            Key::Bar => Some('|'),
             Key::RBrace => Some('}'),
             Key::Tilde => Some('~'),
-            Key::Del => Some('\x7F'),
+            _ => None,
         }
     }
 }
 
 impl Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if *self == Key::LF {
-            write!(f, "Enter")
-        } else if let Some(c) = self.to_char() {
-            write!(f, "{}", c)
-        } else {
-            write!(f, "")
+        match *self {
+            Key::Function(n) => write!(f, "F{}", n),
+            Key::Left => write!(f, "←"),
+            Key::Up => write!(f, "↑"),
+            Key::Right => write!(f, "→"),
+            Key::Down => write!(f, "↓"),
+            Key::Home => write!(f, "Home"),
+            Key::Insert => write!(f, "Ins"),
+            Key::Delete => write!(f, "Del"),
+            Key::End => write!(f, "End"),
+            Key::PageUp => write!(f, "PgUp"),
+            Key::PageDown => write!(f, "PgDn"),
+            Key::Escape => write!(f, "Esc"),
+            Key::Backspace => write!(f, "Backspace"),
+            Key::Tab => write!(f, "Tab"),
+            Key::Enter => write!(f, "Enter"),
+            Key::Space => write!(f, "Space"),
+            _ => {
+                if let Some(c) = self.to_char() {
+                    write!(f, "{}", c)
+                } else {
+                    write!(f, "")
+                }
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Key;
+
+    #[test]
+    fn from_char() {
+        assert!(Key::from_char('a') == Some(Key::a));
+        assert!(Key::from_char('\\') == Some(Key::BSlash));
+        assert!(Key::from_char('\x1b') == Some(Key::Escape));
+    }
+
+    #[test]
+    fn to_char() {
+        assert!(Key::a.to_char() == Some('a'));
+        assert!(Key::BSlash.to_char() == Some('\\'));
+        assert!(Key::Escape.to_char() == Some('\x1b'));
+    }
+
+    #[test]
+    fn display() {
+        assert!(format!("{}", Key::a) == "a");
+        assert!(format!("{}", Key::BSlash) == "\\");
+        assert!(format!("{}", Key::Escape) == "Esc");
+        assert!(format!("{}", Key::Left) == "←");
     }
 }

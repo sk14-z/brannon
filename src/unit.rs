@@ -33,7 +33,7 @@ impl Point {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Unit {
     Cor(usize),         // Columns OR Rows (start at 1)
     PctH(usize),        // Horizontal Percent

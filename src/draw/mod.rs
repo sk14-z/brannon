@@ -1,9 +1,9 @@
 pub mod box_char;
 pub mod cursor;
-pub mod direction;
 
 use crate::{
     app::get_tsz,
+    printf,
     style::{self, align::AlignX, line::Line, set_style, text::TextStyle},
     unit::{Point, Unit},
     widget::attr::Attr,

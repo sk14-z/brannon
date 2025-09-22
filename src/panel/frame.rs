@@ -5,23 +5,19 @@ use crate::{
     panel_shared,
     style::align::{AlignX, AlignY},
     unit::{Point, Unit},
-    widget::{Widget, attr::Attr},
+    widget::{Widget, WidgetList, attr::Attr},
 };
 
 pub struct Frame {
     pub attr: Attr,
-    children: Vec<Box<dyn Widget>>,
-}
-
-impl Panel for Frame {
-    panel_shared!();
+    children: WidgetList,
 }
 
 impl Frame {
     pub fn new(attr: Option<Attr>) -> Frame {
         Frame {
             attr: attr.unwrap_or_default(),
-            children: vec![],
+            children: [].into(),
         }
     }
 
@@ -45,4 +41,8 @@ impl Frame {
 
         self.render_children(anchor);
     }
+}
+
+impl Panel for Frame {
+    panel_shared!();
 }

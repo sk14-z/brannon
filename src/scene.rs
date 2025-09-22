@@ -1,28 +1,10 @@
-use crate::panel::frame::Frame;
-use std::{any::Any, fmt::Display};
+use crate::{make_scene_key, panel::frame::Frame};
+use std::any::Any;
 
-pub trait SceneKey: Any {
+pub trait SceneKey: Any + 'static {
     fn as_any(&self) -> &dyn Any;
 
     fn eq(&self, other: &dyn SceneKey) -> bool;
-}
-
-#[macro_export]
-macro_rules! make_scene_key {
-    ($t:ty) => {
-        impl SceneKey for $t {
-            fn as_any(&self) -> &dyn Any {
-                self
-            }
-
-            fn eq(&self, other: &dyn SceneKey) -> bool {
-                other
-                    .as_any()
-                    .downcast_ref::<Self>()
-                    .map_or(false, |o| self == o)
-            }
-        }
-    };
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -30,8 +12,8 @@ pub struct DefaultScene;
 
 make_scene_key!(DefaultScene);
 
-pub trait SceneKeyT: 'static + SceneKey + Copy + Clone {}
-impl<T: 'static + SceneKey + Copy + Clone> SceneKeyT for T {}
+pub trait SceneKeyT: SceneKey + Copy + Clone {}
+impl<T: SceneKey + Copy + Clone> SceneKeyT for T {}
 
 pub struct Scene {
     pub(crate) key: Box<dyn SceneKey>,
