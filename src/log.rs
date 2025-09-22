@@ -1,6 +1,6 @@
-use crate::style::{color::Color, text::TextStyle, PrintableStyle};
-use std::{fmt::Display, io::Write};
-use time::{format_description, OffsetDateTime};
+use crate::style::{PrintableStyle, color::Color, text::TextStyle};
+use std::{fmt::Display, io::Write, path::Path};
+use time::{OffsetDateTime, format_description};
 
 // You can use less or cat to view a log file with color
 
@@ -12,15 +12,19 @@ pub enum LogFlag {
     Error,
 }
 
-impl LogFlag {
-    fn format(&self) -> String {
-        match self {
-            LogFlag::None => String::from("-"),
-            LogFlag::Info => format!("{}info:", Color::Green.print()),
-            LogFlag::Debug => format!("{}debug:", Color::Blue.print()),
-            LogFlag::Warning => format!("{}warning:", Color::Yellow.print(),),
-            LogFlag::Error => format!("{}error:", Color::Red.print()),
-        }
+impl Display for LogFlag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                LogFlag::None => String::from("-"),
+                LogFlag::Info => format!("{}info:", Color::Green.print()),
+                LogFlag::Debug => format!("{}debug:", Color::Blue.print()),
+                LogFlag::Warning => format!("{}warning:", Color::Yellow.print(),),
+                LogFlag::Error => format!("{}error:", Color::Red.print()),
+            }
+        )
     }
 }
 
@@ -35,7 +39,7 @@ impl Logger {
         }
     }
 
-    pub fn file(path: &str) -> Option<Logger> {
+    pub fn file(path: impl AsRef<Path>) -> Option<Logger> {
         match std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -55,7 +59,7 @@ impl Logger {
                 .unwrap()
                 .format(&format_description::parse("[hour]:[minute]:[second]").unwrap())
                 .unwrap(),
-            flag.format(),
+            flag,
             msg
         );
     }

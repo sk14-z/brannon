@@ -1,5 +1,7 @@
+use crate::input::{Input, parse};
+use crate::{printf, printlnf};
 use libc::*;
-use std::io::{stdin, Read};
+use std::io::{Read, stdin};
 use std::os::unix::io::AsRawFd;
 
 pub fn clear() {
@@ -22,12 +24,16 @@ pub fn termsz() -> (usize, usize) {
     (winsz.ws_col as usize, winsz.ws_row as usize)
 }
 
-pub fn getch() -> Option<char> {
-    let mut buf = [0; 1];
+// Temporary until events are implemented
+pub fn poll_input() -> Option<Input> {
+    let mut buf = [0; 512];
 
     match stdin().read(&mut buf) {
         Ok(0) | Err(_) => None,
-        Ok(_) => Some(buf[0] as char),
+        Ok(_) => {
+            let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+            parse(&buf[0..end])
+        }
     }
 }
 

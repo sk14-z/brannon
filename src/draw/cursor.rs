@@ -1,3 +1,5 @@
+use crate::printf;
+
 pub fn home() {
     printf!("\x1b[H");
 }

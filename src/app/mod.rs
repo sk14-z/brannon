@@ -1,16 +1,12 @@
 mod cache;
-mod terminal;
+pub(crate) mod terminal;
 
 use crate::{
     draw::cursor,
-    key::Key,
+    input::{Input, key::Key},
     panel::{Panel, frame::Frame},
     scene::{DefaultScene, SceneHandler, SceneKey, SceneKeyT},
-    style::{
-        self,
-        color::{Color, ColorBG},
-        set_style,
-    },
+    style::{self, PrintableStyle, set_style},
     theme::Theme,
     widget::{Widget, attr::Attr},
 };
@@ -22,6 +18,10 @@ use std::{
     time::Instant,
 };
 use terminal::{Terminal, termsz};
+
+pub(crate) fn get_tsz() -> (usize, usize) {
+    termsz()
+}
 
 extern "C" fn handle_sigint(_: i32) {}
 
@@ -36,14 +36,10 @@ pub struct App {
     pub refresh_rate: usize,
     // Events
     pub init: fn(&mut Self),
-    pub run: fn(&mut Self, Option<Key>) -> Option<usize>,
+    pub run: fn(&mut Self, Option<Input>) -> Option<usize>,
     pub end: fn(&mut Self),
     // Caches
     caches: HashMap<TypeId, Box<dyn Any>>,
-}
-
-pub(crate) fn get_tsz() -> (usize, usize) {
-    termsz()
 }
 
 impl App {
@@ -94,22 +90,23 @@ impl App {
                 // self.has_changed = true;
             }
 
-            if let Some(c) = terminal::getch() {
-                if let Some(key) = Key::new(c) {
-                    if let Some(n) = (self.run)(self, Some(key)) {
-                        if n != 0 {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-            } else if let Some(n) = (self.run)(self, None) {
+            if let Some(n) = (self.run)(self, terminal::poll_input()) {
                 if n != 0 {
                     break;
                 }
             } else {
-                break;
+                (self.end)(self);
+
+                Terminal::restore();
+
+                crate::printf!(
+                    "\n{}App terminated without exit code\n",
+                    crate::style::color::Color::Red.print()
+                );
+
+                style::reset();
+
+                return;
             }
 
             // if self.has_changed {
@@ -170,18 +167,13 @@ impl App {
         self.scenes.current().key.as_any().downcast_ref::<T>()
     }
 
-    pub fn get_widget<T>(&mut self, tag: &str) -> Option<&mut T>
-    where
-        T: Widget + 'static,
-    {
+    pub fn get_widget<T: Widget>(&mut self, tag: &str) -> Option<&mut T> {
         self.has_changed = true;
 
-        if let Some(widget) = self.frame().get_child(tag) {
-            if let Some(widget) = widget.as_any_mut().downcast_mut::<T>() {
-                Some(widget)
-            } else {
-                None
-            }
+        if let Some(widget) = self.frame().get_child(tag)
+            && let Some(widget_as) = widget.as_any_mut().downcast_mut::<T>()
+        {
+            Some(widget_as)
         } else {
             None
         }
@@ -248,73 +240,5 @@ impl App {
         self.has_changed = true;
 
         self.frame().style_all(map);
-    }
-
-    pub fn fg(&self) -> Color {
-        self.theme.fg
-    }
-
-    pub fn fg_alt(&self) -> Color {
-        self.theme.fg_alt
-    }
-
-    pub fn fg_focus(&self) -> Color {
-        self.theme.fg_focus
-    }
-
-    pub fn bg(&self) -> ColorBG {
-        self.theme.bg
-    }
-
-    pub fn bg_alt(&self) -> ColorBG {
-        self.theme.bg_alt
-    }
-
-    pub fn bg_focus(&self) -> ColorBG {
-        self.theme.bg_focus
-    }
-
-    pub fn accent(&self) -> Color {
-        self.theme.accent
-    }
-
-    pub fn accent_alt(&self) -> Color {
-        self.theme.accent_alt
-    }
-
-    pub fn border(&self) -> Color {
-        self.theme.border
-    }
-
-    pub fn border_alt(&self) -> Color {
-        self.theme.border_alt
-    }
-
-    pub fn red(&self) -> Color {
-        self.theme.red
-    }
-
-    pub fn green(&self) -> Color {
-        self.theme.green
-    }
-
-    pub fn yellow(&self) -> Color {
-        self.theme.yellow
-    }
-
-    pub fn blue(&self) -> Color {
-        self.theme.blue
-    }
-
-    pub fn magenta(&self) -> Color {
-        self.theme.magenta
-    }
-
-    pub fn cyan(&self) -> Color {
-        self.theme.cyan
-    }
-
-    pub fn white(&self) -> Color {
-        self.theme.white
     }
 }

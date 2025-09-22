@@ -4,6 +4,8 @@ pub mod line;
 pub mod orientation;
 pub mod text;
 
+use crate::printf;
+
 pub trait PrintableStyle {
     fn print(&self) -> String;
 }

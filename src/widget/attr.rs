@@ -1,5 +1,5 @@
 use crate::{
-    key::{Key, binds::KeyBinds},
+    input::binds::KeyBinds,
     style::{
         align::*,
         color::{Color, ColorBG},
@@ -7,10 +7,9 @@ use crate::{
         text::TextStyle,
     },
     unit::*,
-    widget::Widget,
 };
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Attr {
     pub hide: bool,
 
@@ -51,12 +50,6 @@ pub struct Attr {
     pub binds: KeyBinds,
     pub hide_binds: bool,
     pub binds_align: AlignX,
-}
-
-impl Default for Attr {
-    fn default() -> Self {
-        Attr::new()
-    }
 }
 
 impl Attr {
@@ -406,5 +399,11 @@ impl Attr {
     pub fn binds_align(&mut self, value: AlignX) -> &mut Attr {
         self.binds_align = value;
         self
+    }
+}
+
+impl Default for Attr {
+    fn default() -> Self {
+        Attr::new()
     }
 }

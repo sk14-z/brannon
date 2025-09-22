@@ -53,7 +53,7 @@ impl<T> AppCache<T> {
 
 impl<T> AppCache<T>
 where
-    T: Clone,
+    T: Clone + Copy,
 {
     pub fn value(&self, name: &'static str) -> Option<T> {
         if let Some(i) = self.keys.iter().position(|w| w == name) {
