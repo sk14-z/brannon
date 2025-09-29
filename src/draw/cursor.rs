@@ -1,4 +1,15 @@
-use crate::printf;
+use crate::{
+    printf,
+    style::color::{Color, ColorBG},
+};
+
+pub fn show() {
+    printf!("\x1b[?25h");
+}
+
+pub fn hide() {
+    printf!("\x1b[?25l");
+}
 
 pub fn home() {
     printf!("\x1b[H");
@@ -24,7 +35,7 @@ pub fn left() {
     printf!("\x1b[1D");
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CursorShape {
     None,
     BlinkBlock,
@@ -36,10 +47,5 @@ pub enum CursorShape {
 }
 
 pub fn set_shape(s: CursorShape) {
-    if s == CursorShape::None {
-        printf!("\x1b[?25l");
-    } else {
-        printf!("\x1b[?25h");
-        printf!("\x1b[{} q", s as usize);
-    }
+    printf!("\x1b[{} q", s as usize);
 }

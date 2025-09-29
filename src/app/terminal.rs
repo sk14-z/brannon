@@ -1,15 +1,16 @@
+use crate::input::key::Protocol;
 use crate::input::{Input, parse};
 use crate::{printf, printlnf};
 use libc::*;
 use std::io::{Read, stdin};
 use std::os::unix::io::AsRawFd;
 
-pub fn clear() {
+pub(crate) fn clear() {
     printf!("\x1b[2J");
 }
 
 // (x, y)
-pub fn termsz() -> (usize, usize) {
+pub(crate) fn termsz() -> (usize, usize) {
     let mut winsz: winsize = winsize {
         ws_row: 0,
         ws_col: 0,
@@ -25,25 +26,64 @@ pub fn termsz() -> (usize, usize) {
 }
 
 // Temporary until events are implemented
-pub fn poll_input() -> Option<Input> {
+pub(crate) fn poll_input() -> Option<Input> {
     let mut buf = [0; 512];
 
     match stdin().read(&mut buf) {
         Ok(0) | Err(_) => None,
-        Ok(_) => {
-            let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
-            parse(&buf[0..end])
-        }
+        Ok(n) => parse(&buf[..n]),
     }
+    // None
 }
 
-pub struct Terminal {
+pub(crate) fn poll_until_i_can_code() -> Vec<Input> {
+    let mut inputs = vec![];
+
+    let mut buf = [0; 512];
+
+    // match stdin().read(&mut buf) {
+    //     Ok(n) => {
+    //         if n > 2 {
+    //             let input_parts = buf[..n].split(|b| *b == b'u');
+    //
+    //             for part in input_parts {
+    //                 if let Some(input) = parse(part) {
+    //                     inputs.push(input);
+    //                 }
+    //             }
+    //         } else {
+    //             if let Some(input) = parse(&buf[..n]) {
+    //                 inputs.push(input);
+    //             }
+    //         }
+    //     }
+    //     _ => {}
+    // }
+
+    if let Ok(n) = stdin().read(&mut buf) {
+        if n > 2 {
+            let input_parts = buf[..n].split_inclusive(|b| *b == b'u');
+
+            for part in input_parts {
+                if let Some(input) = parse(part) {
+                    inputs.push(input);
+                }
+            }
+        } else if let Some(input) = parse(&buf[..n]) {
+            inputs.push(input);
+        }
+    }
+
+    inputs
+}
+
+pub(crate) struct Terminal {
+    // Modes
     canonical_mode: termios,
-    raw_mode: termios,
 }
 
 impl Terminal {
-    pub fn initialize() -> Terminal {
+    pub(crate) fn initialize() -> Terminal {
         let mut canonical_mode: termios = termios {
             c_iflag: 0,
             c_oflag: 0,
@@ -63,27 +103,8 @@ impl Terminal {
             raw_mode.c_lflag &= !(ICANON | ECHO);
         }
 
-        Terminal {
-            canonical_mode,
-            raw_mode,
-        }
-    }
-
-    pub fn save() {
         printlnf!("\x1b[?47h");
-    }
 
-    pub fn restore() {
-        printlnf!("\x1b[?47l\x1b[?25h");
-    }
-
-    pub fn make_canonical(&mut self) {
-        unsafe {
-            tcsetattr(STDIN_FILENO, TCSANOW, &self.canonical_mode);
-        }
-    }
-
-    pub fn make_raw(&self) {
         let stdin_fd = stdin().as_raw_fd();
 
         unsafe {
@@ -93,13 +114,21 @@ impl Terminal {
                 libc::fcntl(stdin_fd, F_GETFL) | O_NONBLOCK,
             );
 
-            tcsetattr(STDIN_FILENO, TCSANOW, &self.raw_mode);
+            tcsetattr(STDIN_FILENO, TCSANOW, &raw_mode);
         }
+
+        Terminal { canonical_mode }
     }
 }
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        self.make_canonical();
+        unsafe {
+            tcsetattr(STDIN_FILENO, TCSANOW, &self.canonical_mode);
+        }
+
+        printlnf!("\x1b[?47l\x1b[?25h");
+
+        Protocol::Default.activate();
     }
 }

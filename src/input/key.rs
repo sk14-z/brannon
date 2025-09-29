@@ -1,10 +1,48 @@
+use crate::printf;
 use std::fmt::Display;
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Protocol {
+    Default,
+    Kitty,
+}
+
+impl Protocol {
+    pub fn activate(&self) {
+        match self {
+            Protocol::Default => printf!("\x1b[=0;1u"),
+            Protocol::Kitty => printf!("\x1b[={};1u", 0b1111),
+        }
+    }
+}
+
+#[repr(u8)]
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum KeyState {
-    Press,
-    Release,
-    Repeat,
+    Press = 1,
+    Repeat = 2,
+    Release = 3,
+}
+
+impl<T: Into<usize>> From<T> for KeyState {
+    fn from(n: T) -> Self {
+        match n.into() {
+            1 => KeyState::Press,
+            2 => KeyState::Repeat,
+            3 => KeyState::Release,
+            _ => KeyState::Press,
+        }
+    }
+}
+
+impl Display for KeyState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeyState::Press => write!(f, ""),
+            KeyState::Repeat => write!(f, " (repeat)"),
+            KeyState::Release => write!(f, " (release)"),
+        }
+    }
 }
 
 #[allow(non_camel_case_types)]
@@ -12,7 +50,7 @@ pub enum KeyState {
 pub enum Key {
     // F(n) is sent as \x1b[n~ where n = [11..=15, 17..=21, 23..=24]
     // F1-F4 can also be sent as \x1bOP, \x1bOQ, \x1bOR, \x1bOS
-    Function(usize),
+    Function(u8),
     // Sent as escape sequences
     Up,       // \x1b[A or \x1bOA
     Down,     // \x1b[B or \x1bOB
@@ -25,11 +63,13 @@ pub enum Key {
     PageUp,   // \x1b[5~
     PageDown, // \x1b[6~
 
-    // Sent as single characters
-    Escape,     // '\x1b'
-    Backspace,  // '\x08' or '\x7f'
-    Tab,        // '\t'
-    Enter,      // '\n' or '\r'
+    // Control characters
+    Escape,    // '\x1b'
+    Backspace, // '\x08' or '\x7f'
+    Tab,       // '\t'
+    Enter,     // '\n' or '\r'
+
+    // Visible characters
     Space,      // ' '
     Excl,       // '!'
     DblQuote,   // '"'

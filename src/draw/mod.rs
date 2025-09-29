@@ -120,37 +120,6 @@ pub fn draw_box(anchor: Point, attr: &Attr, line: Line) {
             bl,
             format!("{}\x1b[1A\x1b[1D", vc).repeat(h - 2),
         );
-
-        // printf!(
-        //     "{}{}{}\x1b[1D\x1b[1B{}{}",
-        //     tl,
-        //     format!("{}", hc).repeat(w - 2),
-        //     tr,
-        //     format!("{}\x1b[1B\x1b[1D", vc).repeat(h - 2),
-        //     br,
-        // );
-        //
-        // printf!(
-        //     "\x1b[2D{}{}\x1b[1D\x1b[1A{}",
-        //     format!("{}\x1b[2D", hc).repeat(w - 2),
-        //     bl,
-        //     format!("{}\x1b[1A\x1b[1D", vc).repeat(h - 2),
-        // );
-
-        // printf!("{}{}{}", tl, format!("{}", hc).repeat(w - 2), tr);
-        //
-        // printf!(
-        //     "\x1b[1D\x1b[1B{}{}",
-        //     format!("{}\x1b[1B\x1b[1D", vc).repeat(h - 2),
-        //     br,
-        // );
-        //
-        // printf!("\x1b[2D{}{}", format!("{}\x1b[2D", hc).repeat(w - 2), bl,);
-        //
-        // printf!(
-        //     "\x1b[1D\x1b[1A{}",
-        //     format!("{}\x1b[1A\x1b[1D", vc).repeat(h - 2),
-        // );
     }
 }
 

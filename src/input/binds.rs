@@ -1,7 +1,7 @@
-use super::{Input, key::Key};
+use super::Input;
 use std::fmt::Display;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq)]
 pub struct KeyBinds {
     keys: Vec<Input>,
     actions: Vec<String>,

@@ -1,17 +1,18 @@
 mod cache;
+pub mod option;
 pub(crate) mod terminal;
 
 use crate::{
     draw::cursor,
-    input::{Input, key::Key},
+    input::Input,
     panel::{Panel, frame::Frame},
     scene::{DefaultScene, SceneHandler, SceneKey, SceneKeyT},
     style::{self, PrintableStyle, set_style},
-    theme::Theme,
     widget::{Widget, attr::Attr},
 };
 use cache::*;
 use libc::{SIGINT, sighandler_t, signal};
+use option::*;
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
@@ -26,15 +27,12 @@ pub(crate) fn get_tsz() -> (usize, usize) {
 extern "C" fn handle_sigint(_: i32) {}
 
 pub struct App {
-    scenes: SceneHandler,
     term: Terminal,
-    has_changed: bool,
-    // Properties
-    pub theme: Theme,
-    pub show_cursor: bool,
-    pub no_interrupt: bool,
-    pub refresh_rate: usize,
-    // Events
+    // Options
+    pub opts: AppOptions,
+    // Scenes
+    scenes: SceneHandler,
+    // App lifecycle delegates
     pub init: fn(&mut Self),
     pub run: fn(&mut Self, Option<Input>) -> Option<usize>,
     pub end: fn(&mut Self),
@@ -48,13 +46,9 @@ impl App {
         scenes.create_scene(DefaultScene, Frame::new(None));
 
         Self {
-            scenes,
             term: Terminal::initialize(),
-            has_changed: true,
-            theme: Theme::new(),
-            show_cursor: false,
-            no_interrupt: true,
-            refresh_rate: 30,
+            scenes,
+            opts: AppOptions::new(),
             init: |_| {},
             run: |_, _| Some(0),
             end: |_| {},
@@ -62,74 +56,113 @@ impl App {
         }
     }
 
-    pub fn start(&mut self) {
-        if self.no_interrupt {
+    pub fn start(mut self) {
+        (self.init)(&mut self);
+
+        if self.opts.no_interrupt {
             unsafe {
                 signal(SIGINT, handle_sigint as sighandler_t);
             }
         }
 
-        Terminal::save();
+        self.opts.key_protocol.activate();
+        // crate::printf!("\x1b[={};1u", 0b1111);
 
-        self.term.make_raw();
-
-        if !self.show_cursor {
-            cursor::set_shape(cursor::CursorShape::None);
-        }
+        cursor::hide();
 
         let mut dim: (usize, usize) = (0, 0);
-
-        (self.init)(self);
 
         loop {
             let time = Instant::now();
 
             if dim != termsz() {
-                // resize everything
                 dim = termsz();
-                // self.has_changed = true;
             }
 
-            if let Some(n) = (self.run)(self, terminal::poll_input()) {
-                if n != 0 {
-                    break;
-                }
-            } else {
-                (self.end)(self);
-
-                Terminal::restore();
-
-                crate::printf!(
-                    "\n{}App terminated without exit code\n",
-                    crate::style::color::Color::Red.print()
-                );
-
-                style::reset();
-
-                return;
+            if !self.run_until_i_can_code() {
+                break;
             }
 
-            // if self.has_changed {
+            // if let Some(n) = (self.run)(&mut self, terminal::poll_input()) {
+            //     if n != 0 {
+            //         break;
+            //     }
+            // } else {
+            //     (self.end)(&mut self);
+            //
+            //     drop(self.term);
+            //
+            //     crate::printf!(
+            //         "\n{}App terminated without exit code\n",
+            //         crate::style::color::Color::Red.print()
+            //     );
+            //
+            //     style::reset();
+            //
+            //     return;
+            // }
+
             set_style(self.frame().attr.fill);
 
             terminal::clear();
             cursor::home();
 
             self.frame().render();
-            self.has_changed = false;
-            // }
 
             style::reset();
 
-            let target_time = std::time::Duration::from_millis(1000 / self.refresh_rate as u64);
+            let target_time =
+                std::time::Duration::from_millis(1000 / self.opts.refresh_rate as u64);
+
             if time.elapsed() < target_time {
                 std::thread::sleep(target_time - time.elapsed());
             }
         }
 
-        (self.end)(self);
+        (self.end)(&mut self);
+    }
 
-        Terminal::restore();
+    pub fn run_until_i_can_code(&mut self) -> bool {
+        let inputs = terminal::poll_until_i_can_code();
+
+        for input in inputs {
+            if let Some(n) = (self.run)(self, Some(input)) {
+                if n != 0 {
+                    return false;
+                }
+            } else {
+                // (self.end)(&mut self);
+
+                // drop(self.term);
+
+                // crate::printf!(
+                //     "\n{}App terminated without exit code\n",
+                //     crate::style::color::Color::Red.print()
+                // );
+
+                // style::reset();
+
+                return false;
+            }
+        }
+
+        if let Some(n) = (self.run)(self, None) {
+            return n == 0;
+        }
+        // else {
+        // (self.end)(&mut self);
+
+        // drop(self.term);
+
+        // crate::printf!(
+        //     "\n{}App terminated without exit code\n",
+        //     crate::style::color::Color::Red.print()
+        // );
+
+        // style::reset();
+        // }
+
+        true
     }
 
     pub fn cache<T: 'static>(&mut self) -> &mut AppCache<T> {
@@ -156,7 +189,7 @@ impl App {
 
     pub fn change_scene<T: SceneKeyT>(&mut self, key: &mut T) {
         self.scenes.change_scene(key);
-        self.has_changed = true;
+        // self.has_changed = true;
     }
 
     pub fn frame(&mut self) -> &mut Frame {
@@ -168,7 +201,7 @@ impl App {
     }
 
     pub fn get_widget<T: Widget>(&mut self, tag: &str) -> Option<&mut T> {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         if let Some(widget) = self.frame().get_child(tag)
             && let Some(widget_as) = widget.as_any_mut().downcast_mut::<T>()
@@ -180,7 +213,7 @@ impl App {
     }
 
     pub fn hide_widget(&mut self, tag: &str) {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         let (_, children) = self.frame().split_mut();
 
@@ -197,7 +230,7 @@ impl App {
     }
 
     pub fn show_widget(&mut self, tag: &str) {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         let (_, children) = self.frame().split_mut();
 
@@ -214,7 +247,7 @@ impl App {
     }
 
     pub fn toggle_visiblity_of(&mut self, tag: &str) {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         let (_, children) = self.frame().split_mut();
 
@@ -231,13 +264,13 @@ impl App {
     }
 
     pub fn map_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         self.frame().map_all(map);
     }
 
     pub fn style_all(&mut self, map: fn(&mut Attr)) {
-        self.has_changed = true;
+        // self.has_changed = true;
 
         self.frame().style_all(map);
     }
