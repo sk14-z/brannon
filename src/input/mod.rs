@@ -1,44 +1,21 @@
 pub mod binds;
 pub mod key;
+pub(crate) mod mask;
 pub mod modifier;
 pub mod mouse;
 
 use key::{Key, KeyState};
+use mask::Mask;
 use modifier::{Modifier, ModifierList};
-use mouse::Mouse;
-use std::fmt::Display;
+use mouse::{Mouse, MouseState};
+use std::{fmt::Display, str};
 
-#[derive(Clone, PartialEq)]
+use crate::unit::Point;
+
+#[derive(Clone, PartialEq, Debug)]
 pub enum Input {
     Key(Key, KeyState, ModifierList),
-    Mouse(Mouse),
-}
-
-impl Input {
-    // Not sure how useful these are
-    // pub fn is_key(&self) -> bool {
-    //     matches!(self, Input::Key(_, _, _))
-    // }
-    //
-    // pub fn is_mouse(&self) -> bool {
-    //     matches!(self, Input::Mouse(_))
-    // }
-
-    // pub(crate) fn key(key: Key) -> Self {
-    //     Input::Key(key, KeyState::Press, [].into())
-    // }
-    //
-    // pub(crate) fn key_press(key: Key, mods: impl Into<ModifierList>) -> Self {
-    //     Input::Key(key, KeyState::Press, mods.into())
-    // }
-    //
-    // pub(crate) fn key_release(key: Key, mods: impl Into<ModifierList>) -> Self {
-    //     Input::Key(key, KeyState::Release, mods.into())
-    // }
-    //
-    // pub(crate) fn key_repeat(key: Key, mods: impl Into<ModifierList>) -> Self {
-    //     Input::Key(key, KeyState::Repeat, mods.into())
-    // }
+    Mouse(Mouse, MouseState, ModifierList, Point),
 }
 
 impl From<Key> for Input {
@@ -65,6 +42,46 @@ impl<T: Into<ModifierList>> From<(Key, KeyState, T)> for Input {
     }
 }
 
+impl From<Mouse> for Input {
+    fn from(mouse: Mouse) -> Self {
+        Input::Mouse(
+            mouse,
+            match mouse {
+                Mouse::Left | Mouse::Middle | Mouse::Right => MouseState::Click,
+                _ => MouseState::Scroll,
+            },
+            [].into(),
+            ().into(),
+        )
+    }
+}
+
+impl From<(Mouse, MouseState)> for Input {
+    fn from((mouse, state): (Mouse, MouseState)) -> Self {
+        Input::Mouse(mouse, state, [].into(), ().into())
+    }
+}
+
+impl<T: Into<ModifierList>> From<(Mouse, T)> for Input {
+    fn from((mouse, mods): (Mouse, T)) -> Self {
+        Input::Mouse(
+            mouse,
+            match mouse {
+                Mouse::Left | Mouse::Middle | Mouse::Right => MouseState::Click,
+                _ => MouseState::Scroll,
+            },
+            mods.into(),
+            ().into(),
+        )
+    }
+}
+
+impl<T: Into<ModifierList>> From<(Mouse, MouseState, T)> for Input {
+    fn from((mouse, state, mods): (Mouse, MouseState, T)) -> Self {
+        Input::Mouse(mouse, state, mods.into(), ().into())
+    }
+}
+
 impl Display for Input {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -78,7 +95,13 @@ impl Display for Input {
                     write!(f, "{} + {}{}", mods, key, state)
                 }
             }
-            Input::Mouse(_) => write!(f, "todo"),
+            Input::Mouse(btn, state, mods, _) => {
+                if mods.0.is_empty() {
+                    write!(f, "{}{}", btn, state)
+                } else {
+                    write!(f, "{} + {}{}", mods, btn, state)
+                }
+            }
         }
     }
 }
@@ -88,7 +111,9 @@ macro_rules! single_byte_key_pat {
         0x1b | 0x08 | b'\t' | b'\n' | 0x20..=0x7f
     };
 }
+
 // Parse into full input event
+// Panics represent where errors would be returned when implemented
 pub fn parse(buf: &[u8]) -> Option<Input> {
     if buf.is_empty() {
         None
@@ -131,8 +156,11 @@ pub fn parse(buf: &[u8]) -> Option<Input> {
                     // Kitty keyboard protocol
                     // Sent as \x1b[key_code:alt_key_code;modifier_mask:event_typeu
                     b'u' => {
-                        let mut params = std::str::from_utf8(&buf[2..])
+                        let mut params = str::from_utf8(&buf[2..])
                             .unwrap_or_else(|_| panic!())
+                            // Temporary solution to avoid crashing when multiple key presses are
+                            // sent at once. Eventually, will be handled separately and split
+                            // before passed.
                             .split('u')
                             .next()
                             .unwrap_or_else(|| panic!())
@@ -177,6 +205,36 @@ pub fn parse(buf: &[u8]) -> Option<Input> {
 
                         maybe_key.map(|key| Input::Key(key, state, mods))
                     }
+
+                    // Mouse Input (digits format)
+                    // Sent as \x1b[<button;col;rowM or \x1b[<button;col;rowm
+                    b @ (b'M' | b'm') => {
+                        assert!(buf.starts_with(b"\x1b[<"));
+
+                        let params: Vec<usize> = str::from_utf8(&buf[3..])
+                            .unwrap_or_else(|_| panic!())
+                            // Same here, temporary solution to avoid crashing
+                            .split(b as char)
+                            .next()
+                            .unwrap_or_else(|| panic!())
+                            .split(';')
+                            .map(|n| n.parse::<usize>().unwrap_or_else(|_| panic!()))
+                            .collect();
+
+                        if params.len() == 3 {
+                            let (mask, col, row) = (params[0], params[1], params[2]);
+                            let (btn, mut state, mods) = Mouse::unmask(mask);
+
+                            if b == b'm' {
+                                state = MouseState::Release;
+                            }
+
+                            Some(Input::Mouse(btn, state, mods, (col, row).into()))
+                        } else {
+                            None
+                        }
+                    }
+
                     _ => match buf[2] {
                         b'A' => Some(Key::Up.into()),
                         b'B' => Some(Key::Down.into()),
@@ -229,12 +287,7 @@ pub fn parse(buf: &[u8]) -> Option<Input> {
 
 #[cfg(test)]
 mod test {
-    use super::{
-        Input,
-        key::{Key, KeyState},
-        modifier::Modifier,
-        parse,
-    };
+    use super::*;
 
     #[test]
     fn display() {
@@ -340,5 +393,81 @@ mod test {
         assert!(parse(b"\x1b[97:65;2u") == Some((Key::A, Modifier::Shift).into()));
         assert!(parse(b"\x1b[97;5u") == Some((Key::a, Modifier::Ctrl).into()));
         assert!(parse(b"\x1b[97;5:2u") == Some((Key::a, KeyState::Repeat, Modifier::Ctrl).into()));
+    }
+
+    #[test]
+    fn parse_mouse_basic() {
+        assert!(
+            parse(b"\x1b[<0;10;20M")
+                == Some(Input::Mouse(
+                    Mouse::Left,
+                    MouseState::Click,
+                    [].into(),
+                    (10, 20).into()
+                ))
+        );
+
+        assert!(
+            parse(b"\x1b[<0;10;20m")
+                == Some(Input::Mouse(
+                    Mouse::Left,
+                    MouseState::Release,
+                    [].into(),
+                    (10, 20).into()
+                ))
+        );
+
+        assert!(
+            parse(b"\x1b[<42;5;6M")
+                == Some(Input::Mouse(
+                    Mouse::Right,
+                    MouseState::Drag,
+                    Modifier::Alt.into(),
+                    (5, 6).into()
+                ))
+        );
+
+        assert!(
+            parse(b"\x1b[<64;30;12M")
+                == Some(Input::Mouse(
+                    Mouse::WheelUp,
+                    MouseState::Scroll,
+                    [].into(),
+                    (30, 12).into()
+                ))
+        );
+    }
+
+    #[test]
+    fn parse_mouse_modifiers() {
+        assert!(
+            parse(b"\x1b[<28;1;1M")
+                == Some(Input::Mouse(
+                    Mouse::Left,
+                    MouseState::Click,
+                    [Modifier::Shift, Modifier::Alt, Modifier::Ctrl].into(),
+                    (1, 1).into()
+                ))
+        );
+
+        assert!(
+            parse(b"\x1b[<86;4;7M")
+                == Some(Input::Mouse(
+                    Mouse::WheelLeft,
+                    MouseState::Scroll,
+                    [Modifier::Shift, Modifier::Ctrl].into(),
+                    (4, 7).into()
+                ))
+        );
+
+        assert!(
+            parse(b"\x1b[<4;2;3m")
+                == Some(Input::Mouse(
+                    Mouse::Left,
+                    MouseState::Release,
+                    Modifier::Shift.into(),
+                    (2, 3).into()
+                ))
+        );
     }
 }

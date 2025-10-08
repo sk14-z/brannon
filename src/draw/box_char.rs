@@ -1,5 +1,6 @@
 use std::{char, fmt};
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BoxChar {
     // Light line box drawing characters
     LightH = 0x2500,       // '─' Horizontal
@@ -102,5 +103,120 @@ impl BoxChar {
 impl fmt::Display for BoxChar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_char())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BoxChar;
+    use std::collections::HashSet;
+
+    #[test]
+    fn to_char_matches_discriminant_codepoint() {
+        let cases: &[(BoxChar, char)] = &[
+            (BoxChar::LightH, '─'),
+            (BoxChar::LightV, '│'),
+            (BoxChar::LightTL, '┌'),
+            (BoxChar::LightTR, '┐'),
+            (BoxChar::LightBL, '└'),
+            (BoxChar::LightBR, '┘'),
+            (BoxChar::LightCross, '┼'),
+            (BoxChar::LightTJUp, '┬'),
+            (BoxChar::LightTJDown, '┴'),
+            (BoxChar::LightTJLeft, '├'),
+            (BoxChar::LightTJRight, '┤'),
+            (BoxChar::HeavyH, '━'),
+            (BoxChar::HeavyV, '┃'),
+            (BoxChar::HeavyTL, '┏'),
+            (BoxChar::HeavyTR, '┓'),
+            (BoxChar::HeavyBL, '┗'),
+            (BoxChar::HeavyBR, '┛'),
+            (BoxChar::HeavyCross, '╋'),
+            (BoxChar::HeavyTJUp, '┳'),
+            (BoxChar::HeavyTJDown, '┻'),
+            (BoxChar::HeavyTJLeft, '┣'),
+            (BoxChar::HeavyTJRight, '┫'),
+            (BoxChar::DoubleH, '═'),
+            (BoxChar::DoubleV, '║'),
+            (BoxChar::DoubleTL, '╔'),
+            (BoxChar::DoubleTR, '╗'),
+            (BoxChar::DoubleBL, '╚'),
+            (BoxChar::DoubleBR, '╝'),
+            (BoxChar::DoubleCross, '╬'),
+            (BoxChar::DoubleTJUp, '╦'),
+            (BoxChar::DoubleTJDown, '╩'),
+            (BoxChar::DoubleTJLeft, '╠'),
+            (BoxChar::DoubleTJRight, '╣'),
+            (BoxChar::ArcTL, '╭'),
+            (BoxChar::ArcTR, '╮'),
+            (BoxChar::ArcBL, '╰'),
+            (BoxChar::ArcBR, '╯'),
+            (BoxChar::DiagonalLR, '╱'),
+            (BoxChar::DiagonalRL, '╲'),
+            (BoxChar::CrossDiagonal, '╳'),
+        ];
+
+        assert_eq!(cases.len(), 40, "Keep test list in sync with enum variants");
+
+        for (variant, expected_char) in cases {
+            assert_eq!(variant.to_char(), *expected_char);
+            // Discriminant is assigned to Unicode code point.
+            let codepoint = *variant as u32;
+            assert_eq!(*expected_char as u32, codepoint);
+            // Display impl
+            assert_eq!(format!("{}", variant), expected_char.to_string());
+        }
+    }
+
+    #[test]
+    fn all_chars_unique() {
+        let mut set = HashSet::new();
+        let variants: &[BoxChar] = &[
+            BoxChar::LightH,
+            BoxChar::LightV,
+            BoxChar::LightTL,
+            BoxChar::LightTR,
+            BoxChar::LightBL,
+            BoxChar::LightBR,
+            BoxChar::LightCross,
+            BoxChar::LightTJUp,
+            BoxChar::LightTJDown,
+            BoxChar::LightTJLeft,
+            BoxChar::LightTJRight,
+            BoxChar::HeavyH,
+            BoxChar::HeavyV,
+            BoxChar::HeavyTL,
+            BoxChar::HeavyTR,
+            BoxChar::HeavyBL,
+            BoxChar::HeavyBR,
+            BoxChar::HeavyCross,
+            BoxChar::HeavyTJUp,
+            BoxChar::HeavyTJDown,
+            BoxChar::HeavyTJLeft,
+            BoxChar::HeavyTJRight,
+            BoxChar::DoubleH,
+            BoxChar::DoubleV,
+            BoxChar::DoubleTL,
+            BoxChar::DoubleTR,
+            BoxChar::DoubleBL,
+            BoxChar::DoubleBR,
+            BoxChar::DoubleCross,
+            BoxChar::DoubleTJUp,
+            BoxChar::DoubleTJDown,
+            BoxChar::DoubleTJLeft,
+            BoxChar::DoubleTJRight,
+            BoxChar::ArcTL,
+            BoxChar::ArcTR,
+            BoxChar::ArcBL,
+            BoxChar::ArcBR,
+            BoxChar::DiagonalLR,
+            BoxChar::DiagonalRL,
+            BoxChar::CrossDiagonal,
+        ];
+        for v in variants {
+            let ch = v.to_char();
+            assert!(set.insert(ch), "Duplicate character: {}", ch);
+        }
+        assert_eq!(set.len(), 40);
     }
 }

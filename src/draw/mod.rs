@@ -47,7 +47,7 @@ pub(crate) fn draw_frame(attr: &Attr) {
 
             set_style(TextStyle::Bold);
 
-            cursor::go(Point::from(anchor, Unit::Cor(x_offset), Unit::Cor(0)));
+            cursor::go((anchor, Unit::CoR(x_offset), Unit::CoR(0)).into());
             printf!("╣ {} ╠", title);
         }
 
@@ -60,7 +60,7 @@ pub(crate) fn draw_frame(attr: &Attr) {
                 AlignX::Right => w - (l + 1),
             };
 
-            cursor::go(Point::from(anchor, x_offset, h - 1));
+            cursor::go((anchor, x_offset, h - 1).into());
             printf!("{}", attr.binds);
         }
 
@@ -134,7 +134,7 @@ pub fn draw_title(anchor: Point, attr: &Attr) {
             AlignX::Right => width - (title.len() + 5),
         };
 
-        cursor::go(Point::from(anchor, x_offset, 0));
+        cursor::go((anchor, x_offset, 0).into());
         printf!("┤ {} ├", title);
     }
 }
@@ -150,7 +150,7 @@ pub fn draw_binds(anchor: Point, attr: &Attr) {
             AlignX::Right => width - (l + 1),
         };
 
-        cursor::go(Point::from(anchor, x_offset, attr.height.calc() - 1));
+        cursor::go((anchor, x_offset, attr.height.calc() - 1).into());
         printf!("{}", attr.binds);
     }
 }

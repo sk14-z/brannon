@@ -8,6 +8,7 @@ use crate::{
     widget::{Widget, WidgetList, attr::Attr},
 };
 
+#[derive(Clone, PartialEq)]
 pub struct Frame {
     pub attr: Attr,
     children: WidgetList,
@@ -28,14 +29,14 @@ impl Frame {
 
         let anchor = Point::new(
             match self.attr.alignx {
-                AlignX::Left => Unit::Cor(2),
-                AlignX::Center => Unit::Cor((get_tsz().0 / 2) - (inner_x.calc() / 2)),
-                AlignX::Right => Unit::Cor(get_tsz().0) - inner_x,
+                AlignX::Left => Unit::CoR(2),
+                AlignX::Center => Unit::CoR((get_tsz().0 / 2) - (inner_x.calc() / 2)),
+                AlignX::Right => Unit::CoR(get_tsz().0) - inner_x,
             },
             match self.attr.aligny {
-                AlignY::Top => Unit::Cor(2),
-                AlignY::Center => Unit::Cor((get_tsz().1 / 2) - (inner_y.calc() / 2)),
-                AlignY::Bottom => Unit::Cor(get_tsz().1) - inner_y,
+                AlignY::Top => Unit::CoR(2),
+                AlignY::Center => Unit::CoR((get_tsz().1 / 2) - (inner_y.calc() / 2)),
+                AlignY::Bottom => Unit::CoR(get_tsz().1) - inner_y,
             },
         );
 

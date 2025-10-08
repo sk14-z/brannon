@@ -41,19 +41,20 @@ impl Widget for Label {
             .collect();
         lines.truncate(self.attr.height.calc() - 2);
 
-        let mut pos = Point::from(
+        let mut pos: Point = (
             anchor,
-            Unit::Cor(1),
+            Unit::CoR(1),
             match self.attr.aligny {
-                AlignY::Top => Unit::Cor(1),
-                AlignY::Center => Unit::Cor((self.attr.height.calc() / 2) - (lines.len() / 2)),
-                AlignY::Bottom => Unit::Cor(self.attr.height.calc() - lines.len() - 1),
+                AlignY::Top => Unit::CoR(1),
+                AlignY::Center => Unit::CoR((self.attr.height.calc() / 2) - (lines.len() / 2)),
+                AlignY::Bottom => Unit::CoR(self.attr.height.calc() - lines.len() - 1),
             },
-        );
+        )
+            .into();
 
         for line in lines {
             if line.len() < (self.attr.width.calc() - 2) {
-                pos.x += Unit::Cor(match self.attr.alignx {
+                pos.x += Unit::CoR(match self.attr.alignx {
                     AlignX::Left => 0,
                     AlignX::Center => (self.attr.width.calc() / 2) - (line.len() / 2) - 1,
                     AlignX::Right => self.attr.width.calc() - line.len() - 2,
@@ -61,7 +62,7 @@ impl Widget for Label {
             }
             cursor::go(pos);
             printf!("{}", line);
-            pos.y += Unit::Cor(1);
+            pos.y += Unit::CoR(1);
         }
     }
 }

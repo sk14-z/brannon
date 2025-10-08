@@ -68,7 +68,7 @@ macro_rules! panel_shared {
 macro_rules! make_scene_key {
     ($t:ty) => {
         impl SceneKey for $t {
-            fn as_any(&self) -> &dyn Any {
+            fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
 

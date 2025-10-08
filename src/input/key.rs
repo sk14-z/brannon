@@ -1,7 +1,7 @@
 use crate::printf;
 use std::fmt::Display;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Protocol {
     Default,
     Kitty,
@@ -16,8 +16,7 @@ impl Protocol {
     }
 }
 
-#[repr(u8)]
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum KeyState {
     Press = 1,
     Repeat = 2,
@@ -46,7 +45,7 @@ impl Display for KeyState {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Key {
     // F(n) is sent as \x1b[n~ where n = [11..=15, 17..=21, 23..=24]
     // F1-F4 can also be sent as \x1bOP, \x1bOQ, \x1bOR, \x1bOS
@@ -411,27 +410,102 @@ impl Display for Key {
 
 #[cfg(test)]
 mod test {
-    use super::Key;
+    use super::{Key, KeyState};
 
     #[test]
     fn from_char() {
-        assert!(Key::from_char('a') == Some(Key::a));
-        assert!(Key::from_char('\\') == Some(Key::BSlash));
-        assert!(Key::from_char('\x1b') == Some(Key::Escape));
+        assert_eq!(Key::from_char('a'), Some(Key::a));
+        assert_eq!(Key::from_char('\\'), Some(Key::BSlash));
+        assert_eq!(Key::from_char('\x1b'), Some(Key::Escape));
     }
 
     #[test]
     fn to_char() {
-        assert!(Key::a.to_char() == Some('a'));
-        assert!(Key::BSlash.to_char() == Some('\\'));
-        assert!(Key::Escape.to_char() == Some('\x1b'));
+        assert_eq!(Key::a.to_char(), Some('a'));
+        assert_eq!(Key::BSlash.to_char(), Some('\\'));
+        assert_eq!(Key::Escape.to_char(), Some('\x1b'));
     }
 
     #[test]
     fn display() {
-        assert!(format!("{}", Key::a) == "a");
-        assert!(format!("{}", Key::BSlash) == "\\");
-        assert!(format!("{}", Key::Escape) == "Esc");
-        assert!(format!("{}", Key::Left) == "←");
+        assert_eq!(format!("{}", Key::a), "a");
+        assert_eq!(format!("{}", Key::BSlash), "\\");
+        assert_eq!(format!("{}", Key::Escape), "Esc");
+        assert_eq!(format!("{}", Key::Left), "←");
+    }
+
+    #[test]
+    fn keystate_from() {
+        assert_eq!(KeyState::from(1usize), KeyState::Press);
+        assert_eq!(KeyState::from(2usize), KeyState::Repeat);
+        assert_eq!(KeyState::from(3usize), KeyState::Release);
+        // Fallback / unknown
+        assert_eq!(KeyState::from(0usize), KeyState::Press);
+        assert_eq!(KeyState::from(42usize), KeyState::Press);
+    }
+
+    #[test]
+    fn keystate_display() {
+        assert_eq!(format!("{}", KeyState::Press), "");
+        assert_eq!(format!("{}", KeyState::Repeat), " (repeat)");
+        assert_eq!(format!("{}", KeyState::Release), " (release)");
+    }
+
+    #[test]
+    fn function_key_display() {
+        assert_eq!(format!("{}", Key::Function(5)), "F5");
+    }
+
+    #[test]
+    fn arrow_key_display() {
+        assert_eq!(format!("{}", Key::Up), "↑");
+        assert_eq!(format!("{}", Key::Right), "→");
+        assert_eq!(format!("{}", Key::Down), "↓");
+    }
+
+    #[test]
+    fn round_trip_canonical_chars() {
+        // For every ASCII char, if we can parse it into a Key and that key can
+        // produce a char, then parsing that produced char must yield the same Key.
+        for c in 0u8..=127 {
+            let ch = c as char;
+            if let Some(key) = Key::from_char(ch)
+                && let Some(c2) = key.to_char()
+            {
+                // Special cases where multiple input chars map to one canonical output
+                // Backspace: '\x7f' and '\x08' canonicalizes to '\x08'
+                if ch == '\x7f' && c2 == '\x08' {
+                    assert_eq!(Key::from_char(c2), Some(key));
+                    continue;
+                }
+
+                // Enter: '\r' canonicalizes to '\n'
+                if ch == '\r' && c2 == '\n' {
+                    assert_eq!(Key::from_char(c2), Some(key));
+                    continue;
+                }
+
+                assert_eq!(
+                    Key::from_char(c2),
+                    Some(key),
+                    "char {:x} round trip failed",
+                    c
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn alternative_backspace_and_enter_inputs() {
+        assert_eq!(Key::from_char('\x7f'), Some(Key::Backspace));
+        assert_eq!(Key::from_char('\x08'), Some(Key::Backspace));
+        assert_eq!(Key::from_char('\r'), Some(Key::Enter));
+        assert_eq!(Key::from_char('\n'), Some(Key::Enter));
+    }
+
+    #[test]
+    fn unhandled_char() {
+        // Non-ASCII / unmapped char should return None
+        assert_eq!(Key::from_char('é'), None);
     }
 }

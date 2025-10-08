@@ -1,6 +1,6 @@
 use crate::style::color::*;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Theme {
     pub fg: Color,
     pub fg_alt: Color,

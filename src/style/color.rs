@@ -2,7 +2,7 @@
 // RGB requires a true color terminal
 
 // Foreground
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Color {
     None,
     Black,
@@ -54,7 +54,7 @@ impl super::PrintableStyle for Color {
 }
 
 // Background
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum ColorBG {
     None,
     Black,

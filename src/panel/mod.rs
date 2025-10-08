@@ -116,11 +116,11 @@ pub trait Panel {
         let (attr, children) = self.split();
 
         if children.is_empty() {
-            (Unit::Cor(0), Unit::Cor(0))
+            (Unit::CoR(0), Unit::CoR(0))
         } else {
             match attr.orientation {
                 Orientation::Horizontal => {
-                    let inner_x = Unit::Cor(
+                    let inner_x = Unit::CoR(
                         children
                             .iter()
                             .map(|c| {
@@ -133,7 +133,7 @@ pub trait Panel {
                             .sum(),
                     );
 
-                    let inner_y = Unit::Cor(
+                    let inner_y = Unit::CoR(
                         children
                             .iter()
                             .map(|c| {
@@ -150,7 +150,7 @@ pub trait Panel {
                     (inner_x, inner_y)
                 }
                 Orientation::Vertical => {
-                    let inner_x = Unit::Cor(
+                    let inner_x = Unit::CoR(
                         children
                             .iter()
                             .map(|c| {
@@ -164,7 +164,7 @@ pub trait Panel {
                             .unwrap(),
                     );
 
-                    let inner_y = Unit::Cor(
+                    let inner_y = Unit::CoR(
                         children
                             .iter()
                             .map(|c| {
@@ -195,7 +195,7 @@ pub trait Panel {
                         pos.y += match attr.aligny {
                             AlignY::Top => child.style().padding_top,
                             AlignY::Center => {
-                                Unit::Cor((inner_y.calc() / 2) - (child.style().height.calc() / 2))
+                                Unit::CoR((inner_y.calc() / 2) - (child.style().height.calc() / 2))
                             }
                             AlignY::Bottom => inner_y - child.style().total_height(),
                         };
@@ -218,7 +218,7 @@ pub trait Panel {
                         pos.x += match attr.alignx {
                             AlignX::Left => child.style().padding_left,
                             AlignX::Center => {
-                                Unit::Cor((inner_x.calc() / 2) - (child.style().width.calc() / 2))
+                                Unit::CoR((inner_x.calc() / 2) - (child.style().width.calc() / 2))
                             }
                             AlignX::Right => inner_x - child.style().total_width(),
                         };
@@ -249,20 +249,20 @@ pub trait Panel {
         let (attr, _) = self.split_mut();
 
         if inner_x.calc() >= attr.width.calc() {
-            attr.width = inner_x + Unit::Cor(2);
+            attr.width = inner_x + Unit::CoR(2);
         }
 
         if inner_y.calc() >= attr.height.calc() {
-            attr.height = inner_y + Unit::Cor(2);
+            attr.height = inner_y + Unit::CoR(2);
         }
 
         if attr.flex {
             if inner_x.calc() <= attr.width.calc() {
-                attr.width = inner_x + Unit::Cor(2);
+                attr.width = inner_x + Unit::CoR(2);
             }
 
             if inner_y.calc() <= attr.height.calc() {
-                attr.height = inner_y + Unit::Cor(2);
+                attr.height = inner_y + Unit::CoR(2);
             }
         }
     }

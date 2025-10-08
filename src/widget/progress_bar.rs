@@ -75,7 +75,7 @@ impl Widget for ProgressBar {
     fn render(&mut self, anchor: Point) {
         set_style(self.bar_color);
 
-        let mut pos = Point::from(anchor, Unit::Cor(1), Unit::Cor(1));
+        let mut pos: Point = (anchor, Unit::CoR(1), Unit::CoR(1)).into();
         cursor::go(pos);
         printf!(
             "{}",
@@ -91,7 +91,7 @@ impl Widget for ProgressBar {
             set_style(self.attr.fill);
         }
 
-        pos.x += Unit::Cor(self.attr.width.calc() / 2);
+        pos.x += Unit::CoR(self.attr.width.calc() / 2);
         cursor::go(pos);
         printf!("{}%", self.progress);
     }

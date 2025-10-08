@@ -34,6 +34,6 @@ impl Widget for Container {
     }
 
     fn render(&mut self, anchor: Point) {
-        self.render_children(Point::from(anchor, 1, 1));
+        self.render_children((anchor, 1, 1).into());
     }
 }

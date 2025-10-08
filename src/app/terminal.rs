@@ -41,25 +41,6 @@ pub(crate) fn poll_until_i_can_code() -> Vec<Input> {
 
     let mut buf = [0; 512];
 
-    // match stdin().read(&mut buf) {
-    //     Ok(n) => {
-    //         if n > 2 {
-    //             let input_parts = buf[..n].split(|b| *b == b'u');
-    //
-    //             for part in input_parts {
-    //                 if let Some(input) = parse(part) {
-    //                     inputs.push(input);
-    //                 }
-    //             }
-    //         } else {
-    //             if let Some(input) = parse(&buf[..n]) {
-    //                 inputs.push(input);
-    //             }
-    //         }
-    //     }
-    //     _ => {}
-    // }
-
     if let Ok(n) = stdin().read(&mut buf) {
         if n > 2 {
             let input_parts = buf[..n].split_inclusive(|b| *b == b'u');
@@ -84,6 +65,7 @@ pub(crate) struct Terminal {
 
 impl Terminal {
     pub(crate) fn initialize() -> Terminal {
+        // Storing canonical mode and initializing raw
         let mut canonical_mode: termios = termios {
             c_iflag: 0,
             c_oflag: 0,
@@ -103,17 +85,20 @@ impl Terminal {
             raw_mode.c_lflag &= !(ICANON | ECHO);
         }
 
+        // Save screen
         printlnf!("\x1b[?47h");
 
         let stdin_fd = stdin().as_raw_fd();
 
         unsafe {
+            // None-blocking
             fcntl(
                 stdin_fd,
                 F_SETFL,
                 libc::fcntl(stdin_fd, F_GETFL) | O_NONBLOCK,
             );
 
+            // Set raw mode
             tcsetattr(STDIN_FILENO, TCSANOW, &raw_mode);
         }
 
@@ -123,12 +108,19 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
+        // Restore canonical mode
         unsafe {
             tcsetattr(STDIN_FILENO, TCSANOW, &self.canonical_mode);
         }
 
+        // Restore screen
         printlnf!("\x1b[?47l\x1b[?25h");
 
+        // Restore default key reporting
         Protocol::Default.activate();
+
+        // Stop mouse stuff
+        crate::printf!("\x1b[?1002l");
+        crate::printf!("\x1b[?1006l");
     }
 }

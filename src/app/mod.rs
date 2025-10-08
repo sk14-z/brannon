@@ -31,7 +31,7 @@ pub struct App {
     // Options
     pub opts: AppOptions,
     // Scenes
-    scenes: SceneHandler,
+    pub scenes: SceneHandler,
     // App lifecycle delegates
     pub init: fn(&mut Self),
     pub run: fn(&mut Self, Option<Input>) -> Option<usize>,
@@ -43,7 +43,7 @@ pub struct App {
 impl App {
     pub fn new() -> App {
         let mut scenes = SceneHandler::new();
-        scenes.create_scene(DefaultScene, Frame::new(None));
+        scenes.add(DefaultScene, Frame::new(None));
 
         Self {
             term: Terminal::initialize(),
@@ -67,6 +67,12 @@ impl App {
 
         self.opts.key_protocol.activate();
         // crate::printf!("\x1b[={};1u", 0b1111);
+
+        // temp
+        // send mouse events: press, release, move with button, scroll
+        crate::printf!("\x1b[?1002h");
+        // mouse reporting format
+        crate::printf!("\x1b[?1006h");
 
         cursor::hide();
 
@@ -102,12 +108,12 @@ impl App {
             //     return;
             // }
 
-            set_style(self.frame().attr.fill);
+            set_style(self.current_frame().attr.fill);
 
             terminal::clear();
             cursor::home();
 
-            self.frame().render();
+            self.current_frame().render();
 
             style::reset();
 
@@ -165,34 +171,17 @@ impl App {
         true
     }
 
-    pub fn cache<T: 'static>(&mut self) -> &mut AppCache<T> {
+    pub fn cache<T: 'static>(&mut self) -> &mut Cache<T> {
         let id = TypeId::of::<T>();
 
         self.caches
             .entry(id)
-            .or_insert(Box::new(AppCache::<T>::new()))
-            .downcast_mut::<AppCache<T>>()
+            .or_insert(Box::new(Cache::<T>::new()))
+            .downcast_mut::<Cache<T>>()
             .unwrap()
     }
 
-    pub fn create_scene<T: SceneKeyT>(&mut self, key: T, frame: Frame) {
-        self.scenes.create_scene(key, frame);
-    }
-
-    pub fn remove_scene<T: SceneKeyT>(&mut self, key: T) -> Option<Frame> {
-        if let Some(scene) = self.scenes.remove_scene(key) {
-            Some(scene.frame)
-        } else {
-            None
-        }
-    }
-
-    pub fn change_scene<T: SceneKeyT>(&mut self, key: &mut T) {
-        self.scenes.change_scene(key);
-        // self.has_changed = true;
-    }
-
-    pub fn frame(&mut self) -> &mut Frame {
+    pub fn current_frame(&mut self) -> &mut Frame {
         &mut self.scenes.current().frame
     }
 
@@ -203,7 +192,7 @@ impl App {
     pub fn get_widget<T: Widget>(&mut self, tag: &str) -> Option<&mut T> {
         // self.has_changed = true;
 
-        if let Some(widget) = self.frame().get_child(tag)
+        if let Some(widget) = self.current_frame().get_child(tag)
             && let Some(widget_as) = widget.as_any_mut().downcast_mut::<T>()
         {
             Some(widget_as)
@@ -215,7 +204,7 @@ impl App {
     pub fn hide_widget(&mut self, tag: &str) {
         // self.has_changed = true;
 
-        let (_, children) = self.frame().split_mut();
+        let (_, children) = self.current_frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -232,7 +221,7 @@ impl App {
     pub fn show_widget(&mut self, tag: &str) {
         // self.has_changed = true;
 
-        let (_, children) = self.frame().split_mut();
+        let (_, children) = self.current_frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -249,7 +238,7 @@ impl App {
     pub fn toggle_visiblity_of(&mut self, tag: &str) {
         // self.has_changed = true;
 
-        let (_, children) = self.frame().split_mut();
+        let (_, children) = self.current_frame().split_mut();
 
         for child in children.iter_mut() {
             if child.style().tag == tag {
@@ -266,12 +255,12 @@ impl App {
     pub fn map_all(&mut self, map: fn(&mut Box<dyn Widget>)) {
         // self.has_changed = true;
 
-        self.frame().map_all(map);
+        self.current_frame().map_all(map);
     }
 
     pub fn style_all(&mut self, map: fn(&mut Attr)) {
         // self.has_changed = true;
 
-        self.frame().style_all(map);
+        self.current_frame().style_all(map);
     }
 }

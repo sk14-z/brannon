@@ -35,7 +35,7 @@ pub fn left() {
     printf!("\x1b[1D");
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CursorShape {
     None,
     BlinkBlock,

@@ -1,7 +1,7 @@
 use crate::{input::key::Protocol, theme::Theme};
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum AppOption {
     Theme(Theme),
     NoInterrupt(bool),
@@ -12,10 +12,12 @@ pub enum AppOption {
 
 // TODO
 // Distinguish between what can be changed at runtime and what requires a restart
+// Option trait instead of enum, redudant
+// Can use generics with set fn to automatically match, rather than using a wrapper enum
 
 pub struct AppOptions {
     pub(crate) theme: Theme,
-    pub no_interrupt: bool,
+    pub(crate) no_interrupt: bool,
     pub(crate) refresh_rate: usize,
     pub(crate) capture_mouse: bool,
     pub(crate) key_protocol: Protocol,

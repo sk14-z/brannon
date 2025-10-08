@@ -1,5 +1,5 @@
 use crate::{
-    input::binds::KeyBinds,
+    input::binds::Binds,
     style::{
         align::*,
         color::{Color, ColorBG},
@@ -9,7 +9,7 @@ use crate::{
     unit::*,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Attr {
     pub hide: bool,
 
@@ -47,7 +47,7 @@ pub struct Attr {
     pub hide_title: bool,
     pub title_align: AlignX,
 
-    pub binds: KeyBinds,
+    pub binds: Binds,
     pub hide_binds: bool,
     pub binds_align: AlignX,
 }
@@ -61,12 +61,12 @@ impl Attr {
             selected: false,
             flex: false,
             orientation: Orientation::Vertical,
-            width: Unit::Cor(0),
-            height: Unit::Cor(0),
-            padding_top: Unit::Cor(1),
-            padding_right: Unit::Cor(1),
-            padding_bottom: Unit::Cor(1),
-            padding_left: Unit::Cor(1),
+            width: Unit::CoR(0),
+            height: Unit::CoR(0),
+            padding_top: Unit::CoR(1),
+            padding_right: Unit::CoR(1),
+            padding_bottom: Unit::CoR(1),
+            padding_left: Unit::CoR(1),
             alignx: AlignX::Left,
             aligny: AlignY::Top,
             fill: ColorBG::None,
@@ -79,7 +79,7 @@ impl Attr {
             title: String::new(),
             hide_title: true,
             title_align: AlignX::Left,
-            binds: KeyBinds::new(),
+            binds: Binds::new(),
             hide_binds: true,
             binds_align: AlignX::Left,
         }
@@ -380,7 +380,7 @@ impl Attr {
         self
     }
 
-    pub fn binds(&mut self, value: impl Into<KeyBinds>) -> &mut Attr {
+    pub fn binds(&mut self, value: impl Into<Binds>) -> &mut Attr {
         self.binds = value.into();
         self.hide_binds = false;
         self
@@ -405,5 +405,196 @@ impl Attr {
 impl Default for Attr {
     fn default() -> Self {
         Attr::new()
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_new_matches_expectations() {
+        let a = Attr::new();
+        assert!(!a.hide);
+        assert_eq!(a.tag, "");
+        assert_eq!(a.width, Unit::CoR(0));
+        assert_eq!(a.height, Unit::CoR(0));
+        assert_eq!(a.padding_top, Unit::CoR(1));
+        assert_eq!(a.padding_right, Unit::CoR(1));
+        assert_eq!(a.padding_bottom, Unit::CoR(1));
+        assert_eq!(a.padding_left, Unit::CoR(1));
+        assert_eq!(a.alignx, AlignX::Left);
+        assert_eq!(a.aligny, AlignY::Top);
+        assert_eq!(a.fill, ColorBG::None);
+        assert_eq!(a.text_style, TextStyle::NoBold);
+        assert_eq!(a.text_color, Color::White);
+        assert!(!a.arc);
+        assert!(!a.hide_border);
+        assert_eq!(a.border_color, Color::White);
+        assert_eq!(a.border_fill, ColorBG::None);
+        assert!(a.title.is_empty());
+        assert!(a.hide_title);
+        assert!(a.hide_binds);
+    }
+
+    #[test]
+    fn size_and_total_dimensions() {
+        let mut a = Attr::new();
+        a.width(10usize).height(5usize);
+        assert_eq!(a.width, Unit::CoR(10));
+        assert_eq!(a.height, Unit::CoR(5));
+        // default padding 1 on each side
+        assert_eq!(a.total_width(), Unit::CoR(12)); // 1 + 10 + 1
+        assert_eq!(a.total_height(), Unit::CoR(7)); // 1 + 5 + 1
+    }
+
+    #[test]
+    fn inc_and_dec_dimensions() {
+        let mut a = Attr::new();
+        a.width(5usize).inc_width(3usize).dec_width(2usize);
+        assert_eq!(a.width, Unit::CoR(6));
+        a.height(8usize).inc_height(4usize).dec_height(3usize);
+        assert_eq!(a.height, Unit::CoR(9));
+    }
+
+    #[test]
+    fn paddingd_variants() {
+        let mut a = Attr::new();
+        a.paddingd(&[3usize]);
+        assert_eq!(a.padding_top, Unit::CoR(3));
+        assert_eq!(a.padding_right, Unit::CoR(3));
+        assert_eq!(a.padding_bottom, Unit::CoR(3));
+        assert_eq!(a.padding_left, Unit::CoR(3));
+
+        a.paddingd(&[2usize, 5usize]);
+        assert_eq!(a.padding_top, Unit::CoR(2));
+        assert_eq!(a.padding_bottom, Unit::CoR(2));
+        assert_eq!(a.padding_right, Unit::CoR(5));
+        assert_eq!(a.padding_left, Unit::CoR(5));
+
+        a.paddingd(&[1usize, 2usize, 3usize, 4usize]);
+        assert_eq!(a.padding_top, Unit::CoR(1));
+        assert_eq!(a.padding_right, Unit::CoR(2));
+        assert_eq!(a.padding_bottom, Unit::CoR(3));
+        assert_eq!(a.padding_left, Unit::CoR(4));
+    }
+
+    #[test]
+    fn pad_helpers() {
+        let mut a = Attr::new();
+        a.pad(4usize);
+        assert_eq!(a.padding_top, Unit::CoR(4));
+        assert_eq!(a.padding_left, Unit::CoR(4));
+        a.paddingx(7usize);
+        assert_eq!(a.padding_left, Unit::CoR(7));
+        assert_eq!(a.padding_right, Unit::CoR(7));
+        a.paddingy(2usize);
+        assert_eq!(a.padding_top, Unit::CoR(2));
+        assert_eq!(a.padding_bottom, Unit::CoR(2));
+    }
+
+    #[test]
+    fn alignment_helpers() {
+        let mut a = Attr::new();
+        a.center();
+        assert_eq!(a.alignx, AlignX::Center);
+        assert_eq!(a.aligny, AlignY::Center);
+
+        a.center_all();
+        assert_eq!(a.alignx, AlignX::Center);
+        assert_eq!(a.aligny, AlignY::Center);
+        assert_eq!(a.title_align, AlignX::Center);
+        assert_eq!(a.binds_align, AlignX::Center);
+
+        a.align(AlignX::Right, AlignY::Bottom);
+        assert_eq!(a.alignx, AlignX::Right);
+        assert_eq!(a.aligny, AlignY::Bottom);
+    }
+
+    #[test]
+    fn orientation_and_flex() {
+        let mut a = Attr::new();
+        a.horizontal();
+        assert_eq!(a.orientation, Orientation::Horizontal);
+        a.vertical();
+        assert_eq!(a.orientation, Orientation::Vertical);
+        a.flex();
+        assert!(a.flex);
+        a.no_flex();
+        assert!(!a.flex);
+    }
+
+    #[test]
+    fn fill_and_fg_affect_border() {
+        let mut a = Attr::new();
+        a.fill(ColorBG::Red);
+        assert_eq!(a.fill, ColorBG::Red);
+        assert_eq!(a.border_fill, ColorBG::Red);
+
+        a.fg(Color::Blue);
+        assert_eq!(a.text_color, Color::Blue);
+        assert_eq!(a.border_color, Color::Blue);
+    }
+
+    #[test]
+    fn text_helpers() {
+        let mut a = Attr::new();
+        a.text(TextStyle::Bold, Color::Green);
+        assert_eq!(a.text_style, TextStyle::Bold);
+        assert_eq!(a.text_color, Color::Green);
+
+        a.italic();
+        assert_eq!(a.text_style, TextStyle::Italic);
+        a.underline();
+        assert_eq!(a.text_style, TextStyle::Underline);
+        a.bold();
+        assert_eq!(a.text_style, TextStyle::Bold);
+    }
+
+    #[test]
+    fn border_controls() {
+        let mut a = Attr::new();
+        a.show_border(true);
+        assert!(!a.hide_border);
+        a.show_border(false);
+        assert!(a.hide_border);
+        a.hide_border();
+        assert!(a.hide_border);
+        a.border_color(Color::Cyan);
+        assert_eq!(a.border_color, Color::Cyan);
+    }
+
+    #[test]
+    fn title_controls() {
+        let mut a = Attr::new();
+        a.title("Hello");
+        assert_eq!(a.title, "Hello");
+        assert!(!a.hide_title);
+        a.hide_title();
+        assert!(a.hide_title);
+        a.show_title();
+        assert!(!a.hide_title);
+    }
+
+    #[test]
+    fn binds_controls() {
+        let mut a = Attr::new();
+        let kb = Binds::new();
+        a.binds(kb.clone());
+        assert!(!a.hide_binds);
+        a.hide_binds();
+        assert!(a.hide_binds);
+        a.show_binds();
+        assert!(!a.hide_binds);
+    }
+
+    #[test]
+    fn tag_and_arc_square() {
+        let mut a = Attr::new();
+        a.tag("panel-1");
+        assert_eq!(a.tag, "panel-1");
+        a.arc();
+        assert!(a.arc);
+        a.square();
+        assert!(!a.arc);
     }
 }

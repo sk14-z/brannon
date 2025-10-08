@@ -1,3 +1,4 @@
+use super::mask::Mask;
 use std::{fmt::Display, ops};
 
 // Unless kitty protocol is active:
@@ -8,14 +9,14 @@ use std::{fmt::Display, ops};
 // yourself out
 // - Not all combinations with control are captured. This is unavoidable.
 // For example, Ctrl + H, I, or J return backspace, tab, enter respectively.
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Modifier {
-    Shift = 0b000001,
-    Alt = 0b000010,
-    Ctrl = 0b000100,
-    Super = 0b001000,
-    Hyper = 0b010000,
-    Meta = 0b100000,
+    Shift = 0b00_0001,
+    Alt = 0b00_0010,
+    Ctrl = 0b00_0100,
+    Super = 0b00_1000,
+    Hyper = 0b01_0000,
+    Meta = 0b10_0000,
 }
 
 impl ops::BitAnd for Modifier {
@@ -47,11 +48,13 @@ impl Display for Modifier {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ModifierList(pub(crate) Vec<Modifier>);
 
-impl ModifierList {
-    pub(crate) fn mask(&self) -> usize {
+impl Mask for ModifierList {
+    type Output = Self;
+
+    fn mask(&self) -> usize {
         let mut n: usize = 0;
 
         for m in self.clone().0 {
@@ -61,7 +64,7 @@ impl ModifierList {
         1 + n
     }
 
-    pub(crate) fn unmask(mask: usize) -> ModifierList {
+    fn unmask(mask: usize) -> ModifierList {
         let mask = mask.saturating_sub(1);
         let mut mods: ModifierList = [].into();
 
@@ -262,5 +265,70 @@ mod test {
         assert!(ModifierList::unmask(0b111) == [Modifier::Ctrl, Modifier::Alt]);
         assert!(ModifierList::unmask(0b1000) == [Modifier::Ctrl, Modifier::Shift, Modifier::Alt]);
         assert!(ModifierList::unmask(0b1001) == [Modifier::Super]);
+    }
+
+    #[test]
+    fn display_single_and_multiple() {
+        let one = ModifierList(vec![Modifier::Ctrl]);
+        assert_eq!(format!("{}", one), "Ctrl");
+
+        let two = ModifierList(vec![Modifier::Ctrl, Modifier::Alt]);
+        // Order preserved from construction
+        assert_eq!(format!("{}", two), "Ctrl + Alt");
+
+        // Different insertion order
+        let swapped = ModifierList(vec![Modifier::Alt, Modifier::Ctrl]);
+        assert_eq!(format!("{}", swapped), "Alt + Ctrl");
+    }
+
+    #[test]
+    fn add_and_add_assign_no_duplicates() {
+        let list = ModifierList(vec![Modifier::Ctrl]) + Modifier::Alt + Modifier::Ctrl;
+        assert!(list == [Modifier::Ctrl, Modifier::Alt] || list == [Modifier::Alt, Modifier::Ctrl]);
+
+        let mut list2 = ModifierList(vec![Modifier::Shift]);
+        list2 += Modifier::Shift;
+        list2 += Modifier::Alt;
+        list2 += Modifier::Alt;
+        assert!(
+            list2 == [Modifier::Shift, Modifier::Alt] || list2 == [Modifier::Alt, Modifier::Shift]
+        );
+    }
+
+    #[test]
+    fn roundtrip_masks_all_combinations() {
+        // Valid mask values are 1 + bitset of modifiers (6 bits => 0..=63 => 1..=64)
+        for mask in 0b1..=0b1000000 {
+            let mods = ModifierList::unmask(mask);
+            assert_eq!(mods.mask(), mask, "roundtrip failed for mask {mask:b}");
+        }
+    }
+
+    #[test]
+    fn from_usize_matches_unmask() {
+        for mask in 0b1..=0b1000000 {
+            let a = ModifierList::from(mask);
+            let b = ModifierList::unmask(mask);
+            assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn equality_order_independent_various() {
+        let a = ModifierList(vec![Modifier::Ctrl, Modifier::Alt, Modifier::Shift]);
+        let b = ModifierList(vec![Modifier::Shift, Modifier::Ctrl, Modifier::Alt]);
+        let c = ModifierList(vec![Modifier::Alt, Modifier::Ctrl, Modifier::Shift]);
+        assert_eq!(a, b);
+        assert_eq!(b, c);
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn partial_eq_usize() {
+        let mods = ModifierList(vec![Modifier::Ctrl, Modifier::Alt]);
+        // mask() adds 1
+        let expected_mask = mods.mask();
+        assert!(mods == expected_mask);
+        assert!(mods != (expected_mask + 1));
     }
 }
